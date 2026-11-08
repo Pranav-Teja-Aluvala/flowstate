@@ -1,5 +1,9 @@
 # Verification record
 
+## Project file library — 09 November 2026
+
+30 unit/integration tests and all four core browser flows passed. The new browser flow covers original-byte download, viewer read access, blocked viewer/outsider writes, blocked cross-origin upload, invalid PDF signatures, project quota enforcement and immediate membership-revocation denial. Type checking, linting, formatting and the production build passed. The Supabase adapter has mocked HTTP coverage, not live provider verification. Migration 0004 was applied to the local PostgreSQL instance. No Docker, WSL, paid hosting or public runner was activated; Docker setup was deferred at the owner's request.
+
 ## Self-hosted distribution update — 09 November 2026
 
 All 24 unit/integration tests passed, including independent credential generation, configuration preservation, custom ports, public URLs and invalid-input rejection. Type checking, linting, formatting and the production build passed. The code browser test passed using mocked GitHub transport, including the explicitly enabled but unavailable runner path. Setup was executed twice locally and preserved its existing configuration. Doctor correctly reported Docker missing.

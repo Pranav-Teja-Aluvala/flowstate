@@ -43,7 +43,14 @@ services:
       GITHUB_APP_SLUG: ${GITHUB_APP_SLUG:-}
       GITHUB_TOKEN_KEY: ${GITHUB_TOKEN_KEY:-}
       RUNNER_ENABLED: ${RUNNER_ENABLED:-false}
+      FILE_STORAGE_PROVIDER: ${FILE_STORAGE_PROVIDER:-local}
+      FILE_STORAGE_PATH: /app/.local/files
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET:-flowstate-files}
       RUNNER_INTERNAL_URL: ${RUNNER_INTERNAL_URL:-http://127.0.0.1:1236}
+    volumes:
+      - file-data:/app/.local/files
     ports:
       - '127.0.0.1:${WEB_PORT:-3000}:3000'
     healthcheck:
@@ -93,3 +100,4 @@ services:
         condition: service_completed_successfully
 volumes:
   postgres-data:
+  file-data:

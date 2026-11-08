@@ -52,7 +52,7 @@ docker compose --project-name flowstate --env-file .env.selfhost -f docker-compo
 docker compose --project-name flowstate --env-file .env.selfhost -f docker-compose.yml cp postgres:/tmp/flowstate-backup.dump ./flowstate-backup.dump
 ```
 
-Keep that archive and `.env.selfhost` securely off the application host. Test restoration against a separate instance before relying on a backup. For public mode add `-f compose.public.yml` to Compose commands. If you changed `COMPOSE_PROJECT_NAME`, use that name in place of `flowstate`.
+Keep that archive and `.env.selfhost` securely off the application host. Uploaded project files live in the separate `file-data` volume; back up that volume too, because the database archive only includes file metadata. Test restoration against a separate instance before relying on a backup. For public mode add `-f compose.public.yml` to Compose commands. If you changed `COMPOSE_PROJECT_NAME`, use that name in place of `flowstate`.
 
 Before updating, back up both items, review migration changes, then update the source and run `npm run selfhost`. Setup preserves credentials; migrations apply during startup. Database changes may require a restoration plan rather than simply reverting source code.
 

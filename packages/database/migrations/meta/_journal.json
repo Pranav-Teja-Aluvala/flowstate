@@ -29,6 +29,13 @@
       "when": 1794159049630,
       "tag": "0003_outgoing_living_lightning",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794169114438,
+      "tag": "0004_strong_praxagora",
+      "breakpoints": true
     }
   ]
 }

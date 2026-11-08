@@ -20,6 +20,7 @@ RUN chown -R node:node apps/web/.next
 
 FROM web-build AS web
 ENV NODE_ENV=production
+RUN mkdir -p /app/.local/files && chown -R node:node /app/.local
 USER node
 EXPOSE 3000
 CMD ["node", "node_modules/next/dist/bin/next", "start", "apps/web", "--hostname", "0.0.0.0"]

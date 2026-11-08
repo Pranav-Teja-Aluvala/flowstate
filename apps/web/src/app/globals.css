@@ -792,6 +792,22 @@ small {
   margin-bottom: 16px;
   font-size: 18px;
 }
+.project-file-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px;
+}
+.project-file-list li {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.project-file-list a {
+  display: inline;
+}
+.settings-card.form > .button {
+  justify-self: start;
+}
 .settings-card > p {
   font-size: 12px;
   margin-bottom: 20px;

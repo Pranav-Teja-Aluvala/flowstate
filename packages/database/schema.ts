@@ -211,3 +211,19 @@ export const codeStates = pgTable('code_states', {
   revision: integer('revision').default(1).notNull(),
   savedAt: timestamp('saved_at', { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const projectFiles = pgTable('project_files', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  projectId: uuid('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  mimeType: text('mime_type').notNull(),
+  size: integer('size').notNull(),
+  storageKey: text('storage_key').notNull().unique(),
+  storageProvider: text('storage_provider').notNull(),
+  createdBy: uuid('created_by')
+    .notNull()
+    .references(() => users.id),
+  ...dates,
+});

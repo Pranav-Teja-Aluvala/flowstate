@@ -2,6 +2,8 @@
 
 Product direction confirmed on 09 November 2026. This is a target specification, not a claim that every feature is implemented.
 
+Execution update: the owner selected a ₹0/month demo, with heavier services local. Docker/WSL setup was subsequently deferred at the owner's request. The project file library now supports upload/download with workspace authorization; embedded office editing and live terminal activation remain pending. See [hosting costs](hosting-costs.md) and [file-library details](project-files.md).
+
 ## User journey
 
 1. Create an account, create a team/workspace and invite teammates with roles.

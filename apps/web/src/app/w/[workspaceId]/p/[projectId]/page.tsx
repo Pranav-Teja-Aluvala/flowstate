@@ -98,6 +98,7 @@ export default async function Project({
         </section>
         <nav className="project-navigation" aria-label="Project areas">
           <span aria-current="page">Overview</span>
+          <Link href={`/w/${workspaceId}/p/${projectId}/files`}>Files</Link>
           <Link href={`/w/${workspaceId}/p/${projectId}/code`}>
             Code & GitHub <ArrowUpRight size={14} />
           </Link>
