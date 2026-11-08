@@ -4,5 +4,7 @@ const config: NextConfig = {
   serverExternalPackages: ['pg'],
   poweredByHeader: false,
   devIndicators: false,
+  // Framework development defaults include action arguments and token-bearing URLs.
+  logging: { incomingRequests: false, serverFunctions: false, browserToTerminal: false },
 };
 export default config;

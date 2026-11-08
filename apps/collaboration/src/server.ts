@@ -146,7 +146,13 @@ export function createCollaborationServer({
     async beforeSync({ documentName, type, payload, connection }) {
       // Commit inbound CRDT updates before Hocuspocus applies, broadcasts, or acknowledges them.
       // Sync step 1 is only a state vector; steps 2 and update contain binary updates.
-      if ((type === 1 || type === 2) && !connection.readOnly) await persist(documentName, payload);
+      if ((type === 1 || type === 2) && !connection.readOnly) {
+        try {
+          await persist(documentName, payload);
+        } catch {
+          throw new Error('Document update could not be saved.');
+        }
+      }
     },
     async onLoadDocument({ documentName, document }) {
       const state = await db.query.documentStates.findFirst({
@@ -163,7 +169,11 @@ export function createCollaborationServer({
       }
     },
     async onStoreDocument({ documentName, document }) {
-      await persist(documentName, Y.encodeStateAsUpdate(document));
+      try {
+        await persist(documentName, Y.encodeStateAsUpdate(document));
+      } catch {
+        throw new Error('Document state could not be saved.');
+      }
       document.broadcastStateless(JSON.stringify({ type: 'saved' }));
     },
   });
