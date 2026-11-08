@@ -52,7 +52,11 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: docker build --target web -f infra/docker/Dockerfile .
+      - run: npm run setup
+      - run: docker compose --env-file .env.selfhost config --quiet
+      - run: docker build --target web -t flowstate-web:ci -f infra/docker/Dockerfile .
+      - name: Check private configuration is excluded from image
+        run: docker run --rm --entrypoint node flowstate-web:ci -e "if(require('fs').existsSync('/app/.env.selfhost')) process.exit(1)"
       - run: docker build --target collaboration -f infra/docker/Dockerfile .
       - run: docker build -t flowstate-runner:local -f infra/docker/runner.Dockerfile .
       - run: npm run test:docker

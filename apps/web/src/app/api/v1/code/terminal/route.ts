@@ -12,6 +12,11 @@ export async function POST(request: Request) {
   if (!sessionToken || !(await currentUser()))
     return Response.json({ error: 'Sign in first.' }, { status: 401 });
   try {
+    if (process.env.RUNNER_ENABLED !== 'true')
+      return Response.json(
+        { error: 'Code execution is disabled on this instance.' },
+        { status: 503 },
+      );
     const reader = request.body?.getReader();
     if (!reader) return Response.json({ error: 'A code session is required.' }, { status: 400 });
     const chunks: Uint8Array[] = [];

@@ -1,5 +1,7 @@
 # Shared code and local Docker execution
 
+Self-hosted core instances disable execution by default. Set `RUNNER_ENABLED=true` in the web service environment only after configuring the separate runner and its internal HTTP and browser WebSocket endpoints. GitHub integration is optional for projects, boards and documents.
+
 The code workspace is an extension requested after the original FLOWSTATE document-and-Kanban MVP. It adds repository activity, branch-based code sessions, CodeMirror/Yjs source editing with presence, PR publishing, and an xterm terminal connected to a separate Docker runner process.
 
 ## Start the local runner

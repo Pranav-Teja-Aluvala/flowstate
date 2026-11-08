@@ -359,6 +359,7 @@ export default async function ProjectCode({
                   )}
                 </div>
                 <SharedTerminal
+                  enabled={process.env.RUNNER_ENABLED === 'true'}
                   projectId={projectId}
                   sessionId={session.id}
                   editable={canWrite(workspace.role) && push}

@@ -1,5 +1,6 @@
 import { defineConfig } from '@playwright/test';
 const fixtureEnvironment = {
+  RUNNER_ENABLED: 'true',
   GITHUB_TOKEN_KEY: '1'.repeat(64),
   COLLABORATION_SECRET: 'flowstate_code_fixture_signing_secret_at_least_32_characters',
   APP_URL: 'http://localhost:3001',

@@ -8,10 +8,12 @@ export function SharedTerminal({
   projectId,
   sessionId,
   editable,
+  enabled,
 }: {
   projectId: string;
   sessionId: string;
   editable: boolean;
+  enabled: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const socket = useRef<WebSocket | null>(null);
@@ -21,7 +23,7 @@ export function SharedTerminal({
   const [error, setError] = useState('');
   const [open, setOpen] = useState(false);
   useEffect(() => {
-    if (!open || !host.current) return;
+    if (!enabled || !open || !host.current) return;
     let cancelled = false;
     let observer: ResizeObserver | undefined;
     let ws: WebSocket | undefined;
@@ -107,7 +109,17 @@ export function SharedTerminal({
       socket.current = null;
       terminal.current = null;
     };
-  }, [open, projectId, sessionId, editable]);
+  }, [open, projectId, sessionId, editable, enabled]);
+  if (!enabled)
+    return (
+      <section className="terminal-panel">
+        <h2>Shared terminal</h2>
+        <p>
+          Code execution is disabled on this instance. The instance administrator can configure the
+          optional Docker runner.
+        </p>
+      </section>
+    );
   return (
     <section className="terminal-panel">
       <header>

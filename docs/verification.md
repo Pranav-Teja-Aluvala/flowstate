@@ -1,5 +1,13 @@
 # Verification record
 
+## Self-hosted distribution update — 09 November 2026
+
+All 24 unit/integration tests passed, including independent credential generation, configuration preservation, custom ports, public URLs and invalid-input rejection. Type checking, linting, formatting and the production build passed. The code browser test passed using mocked GitHub transport, including the explicitly enabled but unavailable runner path. Setup was executed twice locally and preserved its existing configuration. Doctor correctly reported Docker missing.
+
+Docker/Compose startup, public HTTPS certificate issuance and actual container execution were not run locally. CI now includes Compose configuration validation and an image check that private `.env.selfhost` configuration is excluded; those new CI steps have not been executed remotely. The source remains local until published to a public repository.
+
+## Earlier application verification
+
 Environment: Windows, Node.js 24.18.0, real project-local PostgreSQL 18, Chromium through Playwright. Executed 08 November 2026. Test accounts and content are synthetic fixtures created by the actual application flows.
 
 | Check                                                | Result                                                        |

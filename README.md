@@ -6,7 +6,7 @@
 
 ### Good work happens together.
 
-A focused workspace for projects, Kanban boards, and rich-text documents.<br />Write on the same page. See who’s there. Keep the work when the server restarts.
+An MIT-licensed, self-hosted workspace for projects, boards, documents and optional GitHub code collaboration.<br />Run your own instance. Keep your data.
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-345444?style=flat-square)
 ![License MIT](https://img.shields.io/badge/license-MIT-7e9467?style=flat-square)
@@ -129,6 +129,24 @@ flowstate/
 
 UI components live in the web app until a second consumer justifies a shared UI package. Server Actions are the internal mutation interface; the document ticket is an authenticated REST endpoint. The blueprint’s example REST routes are not represented as implemented endpoints.
 
+## Self-host FLOWSTATE
+
+Install Node.js 24 and Docker Engine with Compose v2, download the source, then run from the project folder:
+
+```sh
+npm run selfhost
+```
+
+Open http://localhost:3000 after startup. Setup generates private credentials, starts PostgreSQL, applies migrations and starts the application. Core collaboration requires no GitHub App or cloud database account. Code execution is disabled by default.
+
+```sh
+npm run doctor
+npm run selfhost:logs
+npm run selfhost:stop
+```
+
+Stopping preserves the database volume. See the [self-hosting guide](docs/self-hosting.md) for custom ports, HTTPS, backups and optional integrations. Existing development data remains separate. Docker startup still requires verification on a Docker-equipped machine.
+
 ## Run locally
 
 Requires Node.js 24 and npm. Docker is optional for local development.
@@ -187,13 +205,13 @@ Run migrations once as a controlled deployment step. Do not edit applied migrati
 
 ### Docker Compose
 
-Set `POSTGRES_PASSWORD` and a random `COLLABORATION_SECRET` in the root `.env`, stop project-local PostgreSQL if it occupies port 54329, then run:
+Use the generated, private `.env.selfhost` configuration:
 
 ```sh
-docker compose up --build
+npm run selfhost
 ```
 
-Compose starts PostgreSQL, waits for health, applies migrations, and starts web and collaboration services. Local bindings are loopback-only; this local configuration disables secure-cookie enforcement for HTTP. Remove that override before public deployment. Docker execution has not been verified on the development machine because Docker was unavailable. HTTPS/WSS termination, domain Origins, backups, and a public build-time WebSocket URL must be configured before internet deployment.
+Compose starts PostgreSQL, applies migrations and starts web and collaboration services. Local bindings are loopback-only. See [self-hosting](docs/self-hosting.md) for public HTTPS configuration and verification limits.
 
 ## Verification
 

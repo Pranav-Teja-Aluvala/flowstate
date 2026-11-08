@@ -1,0 +1,25 @@
+services:
+  web:
+    environment:
+      COOKIE_SECURE: 'true'
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    environment:
+      FLOWSTATE_DOMAIN: ${FLOWSTATE_DOMAIN:?Set a domain with npm run setup -- --domain workspace.example.com}
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+      collaboration:
+        condition: service_healthy
+volumes:
+  caddy-data:
+  caddy-config:

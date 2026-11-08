@@ -12,7 +12,9 @@ COPY . .
 
 FROM base AS web-build
 ARG NEXT_PUBLIC_COLLABORATION_URL=ws://localhost:1234
+ARG NEXT_PUBLIC_RUNNER_URL=ws://localhost:1236
 ENV NEXT_PUBLIC_COLLABORATION_URL=$NEXT_PUBLIC_COLLABORATION_URL
+ENV NEXT_PUBLIC_RUNNER_URL=$NEXT_PUBLIC_RUNNER_URL
 RUN npm run build
 RUN chown -R node:node apps/web/.next
 
@@ -20,13 +22,13 @@ FROM web-build AS web
 ENV NODE_ENV=production
 USER node
 EXPOSE 3000
-CMD ["npm", "run", "start"]
+CMD ["node", "node_modules/next/dist/bin/next", "start", "apps/web", "--hostname", "0.0.0.0"]
 
 FROM base AS collaboration
 ENV NODE_ENV=production
 USER node
 EXPOSE 1234
-CMD ["npm", "run", "dev:collaboration"]
+CMD ["node", "--import", "tsx", "apps/collaboration/src/index.ts"]
 
 FROM base AS migrate
 USER node

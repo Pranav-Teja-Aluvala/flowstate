@@ -8,6 +8,11 @@
     "packages/*"
   ],
   "scripts": {
+    "setup": "node scripts/selfhost.mjs setup",
+    "selfhost": "node scripts/selfhost.mjs start",
+    "selfhost:stop": "node scripts/selfhost.mjs stop",
+    "selfhost:logs": "node scripts/selfhost.mjs logs",
+    "doctor": "node scripts/selfhost.mjs doctor",
     "dev": "npm run dev -w @flowstate/web",
     "dev:collaboration": "tsx apps/collaboration/src/index.ts",
     "dev:runner": "tsx apps/runner/src/index.ts",
