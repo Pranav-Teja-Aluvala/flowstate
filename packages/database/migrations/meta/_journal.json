@@ -15,6 +15,20 @@
       "when": 1794154636224,
       "tag": "0001_lowly_blob",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794158851968,
+      "tag": "0002_gray_meltdown",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794159049630,
+      "tag": "0003_outgoing_living_lightning",
+      "breakpoints": true
     }
   ]
 }

@@ -35,6 +35,11 @@ services:
       DATABASE_URL: postgresql://flowstate:${POSTGRES_PASSWORD}@postgres:5432/flowstate
       COLLABORATION_SECRET: ${COLLABORATION_SECRET:?Set a random secret of at least 32 characters}
       COOKIE_SECURE: 'false'
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      GITHUB_APP_SLUG: ${GITHUB_APP_SLUG:-}
+      GITHUB_TOKEN_KEY: ${GITHUB_TOKEN_KEY:-}
     ports:
       - '127.0.0.1:3000:3000'
     depends_on:
@@ -49,6 +54,9 @@ services:
       DATABASE_URL: postgresql://flowstate:${POSTGRES_PASSWORD}@postgres:5432/flowstate
       COLLABORATION_SECRET: ${COLLABORATION_SECRET}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      GITHUB_TOKEN_KEY: ${GITHUB_TOKEN_KEY:-}
     ports:
       - '127.0.0.1:1234:1234'
     depends_on:

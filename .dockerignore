@@ -5,4 +5,6 @@ node_modules
 **/.env.local
 .local
 test-results
+code-test-results
+coverage
 playwright-report

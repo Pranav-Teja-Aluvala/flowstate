@@ -30,15 +30,20 @@ async function projectAccess(projectId: string) {
   return { project, ...access };
 }
 export async function createBoard(_state: ActionState, form: FormData): Promise<ActionState> {
+  let destination: string;
   try {
     const projectId = uuid(form, 'projectId');
-    await projectAccess(projectId);
-    await db.insert(boards).values({ projectId, name: nameSchema.parse(value(form, 'name')) });
+    const { project } = await projectAccess(projectId);
+    const [board] = await db
+      .insert(boards)
+      .values({ projectId, name: nameSchema.parse(value(form, 'name')) })
+      .returning();
+    destination = `/w/${project.workspaceId}/p/${projectId}?board=${board.id}`;
   } catch (error) {
     return failure(error);
   }
   revalidatePath('/');
-  return { success: 'Board created.' };
+  return { success: 'Board created.', redirectTo: destination };
 }
 export async function createColumn(_state: ActionState, form: FormData): Promise<ActionState> {
   try {

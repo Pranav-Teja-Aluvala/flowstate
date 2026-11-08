@@ -19,7 +19,13 @@ import {
 import { nameSchema, emailSchema, passwordSchema, projectSchema } from '@flowstate/contracts';
 import { createSession, requireUser, requireMembership, tokenHash } from './auth';
 
-export type ActionState = { error?: string; success?: string; invite?: string };
+export type ActionState = {
+  error?: string;
+  success?: string;
+  invite?: string;
+  link?: string;
+  redirectTo?: string;
+};
 const text = (form: FormData, key: string) => String(form.get(key) ?? '');
 const id = (form: FormData, key: string) => z.uuid().parse(text(form, key));
 function message(error: unknown) {
@@ -160,6 +166,11 @@ export async function deleteProject(_state: ActionState, form: FormData): Promis
   try {
     workspaceId = id(form, 'workspaceId');
     await requireMembership(workspaceId, 'manage');
+    const project = await db.query.projects.findFirst({
+      where: and(eq(projects.id, id(form, 'projectId')), eq(projects.workspaceId, workspaceId)),
+    });
+    if (!project || text(form, 'confirmation') !== project.name)
+      return { error: 'Enter the exact project name to confirm deletion.' };
     await db
       .delete(projects)
       .where(and(eq(projects.id, id(form, 'projectId')), eq(projects.workspaceId, workspaceId)));

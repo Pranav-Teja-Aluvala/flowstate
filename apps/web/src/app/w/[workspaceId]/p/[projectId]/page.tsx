@@ -12,10 +12,9 @@ import {
   memberships,
   users,
 } from '@flowstate/database';
-import { canWrite, canManage } from '@flowstate/contracts';
+import { canWrite } from '@flowstate/contracts';
 import { requireUser } from '@/lib/auth';
 import { userWorkspaces } from '@/lib/queries';
-import { saveProject, deleteProject } from '@/lib/actions';
 import { Shell } from '@/components/shell';
 import { ActionForm, Dialog } from '@/components/forms';
 import { createBoard, createColumn, createDocument } from '@/lib/work-actions';
@@ -93,8 +92,16 @@ export default async function Project({
             </h1>
             <p className="muted">{project.description || 'A fresh space for your next idea.'}</p>
           </div>
-          <FolderOpen size={45} strokeWidth={1} />
+          <Link className="button secondary" href={`/w/${workspaceId}/p/${projectId}/settings`}>
+            Project settings
+          </Link>
         </section>
+        <nav className="project-navigation" aria-label="Project areas">
+          <span aria-current="page">Overview</span>
+          <Link href={`/w/${workspaceId}/p/${projectId}/code`}>
+            Code & GitHub <ArrowUpRight size={14} />
+          </Link>
+        </nav>
         <div className="project-controls">
           <div className="board-tabs">
             {projectBoards.map((b) => (
@@ -181,41 +188,6 @@ export default async function Project({
             </p>
           )}
         </section>
-        <details className="settings-card">
-          <summary>Project details</summary>
-          <div className="details-content">
-            {canWrite(workspace.role) ? (
-              <ActionForm action={saveProject}>
-                <input type="hidden" name="workspaceId" value={workspaceId} />
-                <input type="hidden" name="projectId" value={projectId} />
-                <label>
-                  Project name
-                  <input name="name" defaultValue={project.name} maxLength={80} required />
-                </label>
-                <label>
-                  Description
-                  <textarea
-                    name="description"
-                    defaultValue={project.description}
-                    maxLength={1000}
-                  />
-                </label>
-              </ActionForm>
-            ) : (
-              <p className="muted">You have view-only access to this project.</p>
-            )}
-          </div>
-        </details>
-        {canManage(workspace.role) && (
-          <details className="settings-card danger">
-            <summary>Delete project</summary>
-            <p>This permanently deletes this project.</p>
-            <ActionForm action={deleteProject} label="Delete project">
-              <input type="hidden" name="workspaceId" value={workspaceId} />
-              <input type="hidden" name="projectId" value={projectId} />
-            </ActionForm>
-          </details>
-        )}
       </main>
     </Shell>
   );

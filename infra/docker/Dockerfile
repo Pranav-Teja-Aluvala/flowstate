@@ -5,6 +5,8 @@ COPY apps/web/package.json apps/web/package.json
 COPY apps/collaboration/package.json apps/collaboration/package.json
 COPY packages/database/package.json packages/database/package.json
 COPY packages/contracts/package.json packages/contracts/package.json
+COPY packages/github/package.json packages/github/package.json
+COPY apps/runner/package.json apps/runner/package.json
 RUN npm ci
 COPY . .
 

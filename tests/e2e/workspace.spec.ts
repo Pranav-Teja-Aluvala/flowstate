@@ -27,7 +27,7 @@ test('board ordering persists and two authorized users edit one rich-text docume
   await owner.getByLabel('Description').fill('A thoughtful launch for our next chapter.');
   await owner.getByRole('button', { name: 'Create project' }).click();
   await expect(owner.getByText('Project saved.')).toBeVisible();
-  await owner.getByRole('button', { name: 'Close dialog' }).click();
+  await expect(owner.getByRole('dialog')).toHaveCount(0);
   await owner.getByRole('link', { name: /Studio launch/ }).click();
   await expect(owner).toHaveURL(/\/p\/[a-f0-9-]+$/);
   const projectUrl = owner.url();
@@ -35,13 +35,13 @@ test('board ordering persists and two authorized users edit one rich-text docume
   await owner.getByLabel('Board name').fill('Launch roadmap');
   await owner.getByRole('button', { name: 'Create board', exact: true }).click();
   await expect(owner.getByText('Board created.')).toBeVisible();
-  await owner.getByRole('button', { name: 'Close dialog' }).click();
+  await expect(owner.getByRole('dialog')).toHaveCount(0);
   for (const column of ['To do', 'In progress', 'Done']) {
     await owner.getByRole('button', { name: 'Add column' }).click();
     await owner.getByLabel('Column title').fill(column);
     await owner.getByRole('button', { name: 'Create column', exact: true }).click();
     await expect(owner.getByText('Column created.')).toBeVisible();
-    await owner.getByRole('button', { name: 'Close dialog' }).click();
+    await expect(owner.getByRole('dialog')).toHaveCount(0);
   }
   await owner.getByRole('button', { name: 'Add task to To do' }).click();
   for (const title of ['Set the creative direction', 'Build the launch checklist']) {
@@ -77,7 +77,7 @@ test('board ordering persists and two authorized users edit one rich-text docume
   await owner.getByLabel('Document title').fill('The launch brief');
   await owner.getByRole('button', { name: 'Create document', exact: true }).click();
   await expect(owner.getByText('Document created.')).toBeVisible();
-  await owner.getByRole('button', { name: 'Close dialog' }).click();
+  await expect(owner.getByRole('dialog')).toHaveCount(0);
   await owner.goto(`${workspaceUrl}/settings`);
   await owner.getByLabel('Email address').fill(`sam-${suffix}@test.local`);
   await owner.getByLabel('Workspace role').selectOption('editor');

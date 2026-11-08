@@ -2,6 +2,7 @@ node_modules
 **/.next
 .local
 test-results
+code-test-results
 playwright-report
 package-lock.json
 packages/database/migrations/meta

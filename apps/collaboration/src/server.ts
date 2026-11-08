@@ -11,7 +11,10 @@ import {
   projects,
   documents,
   documentStates,
+  codeStates,
+  codeFiles,
 } from '@flowstate/database';
+import { authorizeCode } from '@flowstate/github';
 
 export type Context = {
   sessionHash: string;
@@ -22,6 +25,11 @@ export type Context = {
 };
 const colors = ['#657e54', '#b1865c', '#6c8d9a', '#a67682', '#8d83ad'];
 export async function authorize(documentId: string, sessionHash: string) {
+  if (documentId.startsWith('code:')) {
+    const fileId = z.uuid().parse(documentId.slice(5));
+    const access = await authorizeCode(fileId, sessionHash);
+    return { ...access, color: colors[parseInt(access.userId.slice(0, 8), 16) % colors.length] };
+  }
   if (!z.uuid().safeParse(documentId).success) throw new Error('Access denied');
   const [access] = await db
     .select({ userId: users.id, name: users.name, role: memberships.role })
@@ -64,9 +72,14 @@ export function createCollaborationServer({
         await db.transaction(async (tx) => {
           // One writer per document, including independent processes doing stores.
           await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${documentId}))`);
-          const existing = await tx.query.documentStates.findFirst({
-            where: eq(documentStates.documentId, documentId),
-          });
+          const code = documentId.startsWith('code:');
+          const existing = code
+            ? await tx.query.codeStates.findFirst({
+                where: eq(codeStates.fileId, documentId.slice(5)),
+              })
+            : await tx.query.documentStates.findFirst({
+                where: eq(documentStates.documentId, documentId),
+              });
           const merged = existing
             ? Y.mergeUpdates([new Uint8Array(existing.yjsState), state])
             : state;
@@ -77,17 +90,30 @@ export function createCollaborationServer({
           } finally {
             probe.destroy();
           }
-          await tx
-            .insert(documentStates)
-            .values({ documentId, yjsState: Buffer.from(merged) })
-            .onConflictDoUpdate({
-              target: documentStates.documentId,
-              set: {
-                yjsState: Buffer.from(merged),
-                savedAt: new Date(),
-                revision: sql`${documentStates.revision} + 1`,
-              },
-            });
+          if (code)
+            await tx
+              .insert(codeStates)
+              .values({ fileId: documentId.slice(5), yjsState: Buffer.from(merged) })
+              .onConflictDoUpdate({
+                target: codeStates.fileId,
+                set: {
+                  yjsState: Buffer.from(merged),
+                  savedAt: new Date(),
+                  revision: sql`${codeStates.revision} + 1`,
+                },
+              });
+          else
+            await tx
+              .insert(documentStates)
+              .values({ documentId, yjsState: Buffer.from(merged) })
+              .onConflictDoUpdate({
+                target: documentStates.documentId,
+                set: {
+                  yjsState: Buffer.from(merged),
+                  savedAt: new Date(),
+                  revision: sql`${documentStates.revision} + 1`,
+                },
+              });
         });
       });
     saving.set(documentId, next);
@@ -119,7 +145,11 @@ export function createCollaborationServer({
       if (received.length !== expected.length || !timingSafeEqual(expected, received))
         throw new Error('Access denied');
       const data = z
-        .object({ documentId: z.uuid(), sessionHash: z.string().length(64), expiresAt: z.number() })
+        .object({
+          documentId: z.string().max(50),
+          sessionHash: z.string().length(64),
+          expiresAt: z.number(),
+        })
         .parse(JSON.parse(Buffer.from(payload, 'base64url').toString()));
       if (data.documentId !== documentName || data.expiresAt < Date.now())
         throw new Error('Access denied');
@@ -155,6 +185,22 @@ export function createCollaborationServer({
       }
     },
     async onLoadDocument({ documentName, document }) {
+      if (documentName.startsWith('code:')) {
+        const fileId = documentName.slice(5);
+        const state = await db.query.codeStates.findFirst({ where: eq(codeStates.fileId, fileId) });
+        if (state) Y.applyUpdate(document, new Uint8Array(state.yjsState));
+        else {
+          const file = await db.query.codeFiles.findFirst({ where: eq(codeFiles.id, fileId) });
+          if (!file) throw new Error('Code file not found.');
+          document.getText('code').insert(0, file.initialContent);
+          try {
+            await persist(documentName, Y.encodeStateAsUpdate(document));
+          } catch {
+            throw new Error('Code file could not be loaded.');
+          }
+        }
+        return;
+      }
       const state = await db.query.documentStates.findFirst({
         where: eq(documentStates.documentId, documentName),
       });

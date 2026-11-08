@@ -29,6 +29,14 @@ Teams need shared context as well as a task list. FLOWSTATE brings projects, boa
 | **Useful permissions** — owner, admin, editor, and viewer                          | **Recoverable state** — load/store hooks and a real server-restart integration test            |
 | **Invitations** — single-use, email-bound links with 48-hour expiry                | **Practical feedback** — loading, empty, error, connection, and save states                    |
 
+### Code workspace extension
+
+The user-requested extension adds a **Code & GitHub** area to each project: selected-repository connection, branches/commits/PR activity, shared CodeMirror source buffers, explicit branch-and-PR publishing, and a Docker-backed shared terminal. It is separate from the original document-and-Kanban MVP.
+
+**Activation required:** register the GitHub App and provide credentials using [GitHub setup](docs/github-setup.md). Install/start Docker and build the runner image using [Code workspace setup](docs/code-workspace.md). Live GitHub and Docker execution have not been verified on this machine. Automated code-flow tests use a clearly isolated mocked GitHub API.
+
+Creation dialogs now close on successful saves, preserve validation errors, and restore keyboard focus. A newly created board becomes active. Project deletion lives in **Project settings → Danger zone**, with an exact-name confirmation and a separate destructive style.
+
 ### Inside the application
 
 ![Actual task board](docs/screenshots/kanban-desktop.png)
@@ -46,15 +54,16 @@ Screenshots come from the running application with test workspace content. They 
 
 ## The stack
 
-| Layer           | Choice                                                        |
-| --------------- | ------------------------------------------------------------- |
-| Web             | Next.js App Router, React, strict TypeScript, Tailwind CSS    |
-| Rich text       | Tiptap StarterKit, Collaboration, CollaborationCaret          |
-| Synchronization | Yjs CRDT, Hocuspocus WebSocket server, awareness              |
-| Data            | PostgreSQL, Drizzle ORM and generated SQL migrations          |
-| Identity        | bcrypt passwords, opaque server sessions in HTTP-only cookies |
-| Verification    | Vitest, Playwright, PostgreSQL-backed integration tests       |
-| Delivery        | npm workspaces, Docker Compose, GitHub Actions configuration  |
+| Layer           | Choice                                                               |
+| --------------- | -------------------------------------------------------------------- |
+| Web             | Next.js App Router, React, strict TypeScript, Tailwind CSS           |
+| Source code     | CodeMirror, Yjs, GitHub App user authorization, xterm, Docker runner |
+| Rich text       | Tiptap StarterKit, Collaboration, CollaborationCaret                 |
+| Synchronization | Yjs CRDT, Hocuspocus WebSocket server, awareness                     |
+| Data            | PostgreSQL, Drizzle ORM and generated SQL migrations                 |
+| Identity        | bcrypt passwords, opaque server sessions in HTTP-only cookies        |
+| Verification    | Vitest, Playwright, PostgreSQL-backed integration tests              |
+| Delivery        | npm workspaces, Docker Compose, GitHub Actions configuration         |
 
 Redis and BullMQ are deliberately omitted: the MVP has no job queue or durable notifications. Presence stays in memory and never becomes document history. One collaboration instance is supported; multi-instance live fanout requires additional infrastructure.
 
@@ -195,6 +204,7 @@ npm run test
 npm run build
 npx playwright install chromium
 npm run test:e2e
+npm run test:code  # Build first; uses an isolated mocked GitHub API
 ```
 
 Tests require a migrated disposable PostgreSQL database. Integration tests use port 1235. Playwright starts web on port 3000 and collaboration on 1234. Do not point test runs at production. Browser test fixtures persist for screenshot inspection; integration fixtures clean themselves up.

@@ -13,3 +13,7 @@ Schedule selected by the user: 3–5 days, at most five focused hours per day. T
 Highest-priority external follow-ups: run Compose on a Docker-enabled machine, publish the local Git repository, execute remote CI, configure a deployment, and perform a protected database restore drill before reliability claims beyond the tested collaboration restart scenario.
 
 No Redis jobs, notifications, comments, public sharing, advanced history, or other stretch scope was added. The application uses the explicitly allowed Drizzle and Next.js Server Action options. Source examples for schema and API shapes are treated as proposed designs, not guaranteed vendor behavior.
+
+## Requested extension after the MVP
+
+The user subsequently requested fixes to creation dialogs and project deletion placement, plus all three code-workspace capabilities: GitHub project context, source editing with branches/PRs, and live shared coding with local Docker terminals. These extend the original Word-file scope explicitly. Implementation and fixture-based verification are included; external App setup and Docker execution remain required. See docs/github-setup.md and docs/code-workspace.md.

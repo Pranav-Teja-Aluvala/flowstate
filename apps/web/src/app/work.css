@@ -510,3 +510,331 @@
     display: none;
   }
 }
+.success-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 16px;
+  background: #edf2e5;
+  color: #345444;
+  border: 1px solid #cbd8ba;
+  border-radius: 8px;
+  box-shadow: 0 8px 28px #24311915;
+  font-size: 13px;
+  max-width: calc(100vw - 32px);
+}
+.secondary {
+  background: #fff;
+  border-color: var(--line);
+  color: var(--green);
+}
+.danger-zone {
+  margin-top: 60px;
+  padding: 26px;
+  border: 1px solid #e8b9aa;
+  border-left: 4px solid #ad5b47;
+  border-radius: 8px;
+  background: #fff8f5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+.danger-zone h2 {
+  color: #8e3e2b;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.danger-zone p,
+.deletion-warning {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #89675a;
+  max-width: 580px;
+}
+.danger-zone > .primary {
+  background: #a54f3b;
+}
+.deletion-warning {
+  margin-bottom: 22px;
+}
+@media (max-width: 760px) {
+  .danger-zone {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .success-toast {
+    bottom: 16px;
+    right: 16px;
+  }
+}
+.project-navigation {
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 25px;
+  font-size: 13px;
+}
+.project-navigation > a,
+.project-navigation > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 13px 0;
+}
+.project-navigation > span {
+  border-bottom: 2px solid var(--green);
+  color: var(--green);
+}
+.code-main {
+  padding-bottom: 50px;
+}
+.setup-notice {
+  margin-top: 20px;
+  padding: 16px;
+  background: #f1f4e9;
+  border-radius: 6px;
+  line-height: 1.8;
+  font-size: 12px;
+}
+.github-identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #718361;
+  padding: 15px 0;
+}
+.github-identity > details {
+  margin-left: auto;
+}
+.github-identity .form {
+  margin-top: 15px;
+}
+.repo-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px;
+  background: #edf1e4;
+  border: 1px solid #dce4ce;
+  border-radius: 9px;
+}
+.repo-summary > div {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.repo-summary a {
+  font-size: 12px;
+  color: #718361;
+}
+.repository-activity {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+  margin: 24px 0;
+}
+.repository-activity > section {
+  min-width: 0;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 20px;
+}
+.repository-activity h2 {
+  font-size: 14px;
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.repository-activity a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  line-height: 1.7;
+  padding: 8px 0;
+  overflow-wrap: anywhere;
+}
+.repository-activity code {
+  font-size: 10px;
+  color: #8e9b80;
+}
+.coding-layout {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  gap: 18px;
+  margin: 25px 0;
+}
+.file-browser {
+  background: #f0f3e9;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 15px;
+  max-height: 600px;
+  overflow: auto;
+}
+.file-browser h2 {
+  font-size: 12px;
+  letter-spacing: 0;
+  margin-bottom: 15px;
+}
+.file-browser > a,
+.file-browser > button {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  width: 100%;
+  padding: 10px 6px;
+  font-size: 11px;
+  color: #6c7f5b;
+  text-align: left;
+  background: none;
+  border: 0;
+  overflow-wrap: anywhere;
+}
+.file-browser > a:hover,
+.file-browser > button:hover {
+  background: #e3ead7;
+}
+.file-browser svg {
+  flex-shrink: 0;
+}
+.file-browser button > svg:last-child {
+  margin-left: auto;
+}
+.shared-code {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  min-width: 0;
+}
+.shared-code > header {
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  background: #f9faf6;
+  font-size: 11px;
+}
+.shared-code > header span {
+  color: #839570;
+}
+.shared-code .cm-editor {
+  max-width: 100%;
+}
+.shared-code .cm-scroller {
+  max-height: 600px;
+}
+.code-presence {
+  padding: 9px 20px;
+  border-block: 1px solid var(--line);
+  font-size: 10px;
+  color: #8b9a7b;
+}
+.shared-code > footer {
+  padding: 14px 20px;
+  background: #f9faf6;
+  color: #8b9a7b;
+  font-size: 10px;
+  line-height: 1.7;
+}
+.terminal-panel {
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin: 25px 0;
+  background: #fff;
+}
+.terminal-panel > header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.terminal-panel h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+.terminal-panel > header > span {
+  font-size: 10px;
+  color: #8a9a79;
+}
+.terminal-panel > header > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.terminal-panel .button {
+  font-size: 11px;
+  min-height: 35px;
+  padding: 8px 12px;
+}
+.terminal-panel > p {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #8c9980;
+  margin: 16px 0;
+}
+.terminal-host {
+  height: 330px;
+  background: #202a24;
+  padding: 10px;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.publish-card {
+  max-width: 700px;
+}
+.publish-card .form {
+  margin-top: 20px;
+}
+@media (max-width: 1000px) {
+  .coding-layout {
+    grid-template-columns: 180px minmax(0, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  .coding-layout,
+  .repository-activity {
+    grid-template-columns: 1fr;
+  }
+  .file-browser {
+    max-height: 240px;
+  }
+  .repo-summary {
+    flex-direction: column;
+  }
+  .terminal-panel {
+    padding: 16px;
+  }
+  .terminal-panel > header > div {
+    margin-left: 0;
+  }
+  .github-identity {
+    flex-wrap: wrap;
+  }
+  .shared-code > header {
+    flex-wrap: wrap;
+  }
+}
+
+.button.destructive {
+  background: #a54f3b;
+  color: white;
+  border-color: #a54f3b;
+}
+.button.destructive:hover {
+  background: #843b2b;
+}

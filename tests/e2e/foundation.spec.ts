@@ -38,13 +38,13 @@ test('accounts, persisted projects, invitations, workspace isolation, and viewer
     );
   await owner.getByRole('button', { name: 'Create project', exact: true }).click();
   await expect(owner.getByRole('status')).toHaveText('Project saved.');
-  await owner.getByRole('button', { name: 'Close dialog' }).click();
+  await expect(owner.getByRole('dialog')).toHaveCount(0);
   await owner.reload();
   await expect(owner.getByRole('heading', { name: 'Brand refresh' })).toBeVisible();
   await owner.getByRole('link', { name: /Brand refresh/ }).click();
   await expect(owner).toHaveURL(/\/p\/[a-f0-9-]+$/);
   const projectUrl = owner.url();
-  await owner.getByText('Project details', { exact: true }).click();
+  await owner.getByRole('link', { name: 'Project settings' }).click();
   await owner.getByLabel('Description').fill('A shared direction for the studio’s next chapter.');
   await owner.getByRole('button', { name: 'Save changes' }).click();
   await expect(owner.getByRole('status')).toHaveText('Project saved.');
@@ -93,7 +93,7 @@ test('accounts, persisted projects, invitations, workspace isolation, and viewer
   await viewer.goto(workspaceUrl);
   await expect(viewer.getByRole('button', { name: 'New project' })).toHaveCount(0);
   await viewer.goto(projectUrl);
-  await viewer.getByText('Project details', { exact: true }).click();
+  await viewer.getByRole('link', { name: 'Project settings' }).click();
   await expect(viewer.getByText('You have view-only access')).toBeVisible();
 
   // Attempt a real server action write by forging an owned-workspace form's ID.

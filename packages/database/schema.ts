@@ -142,3 +142,72 @@ export const documentStates = pgTable('document_states', {
   savedAt: timestamp('saved_at', { withTimezone: true }).defaultNow().notNull(),
   revision: integer('revision').notNull().default(1),
 });
+export const githubAccounts = pgTable('github_accounts', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  githubId: text('github_id').notNull(),
+  login: text('login').notNull(),
+  accessToken: text('access_token').notNull(),
+  refreshToken: text('refresh_token'),
+  expiresAt: timestamp('expires_at', { withTimezone: true }),
+  ...dates,
+});
+export const githubOAuthStates = pgTable('github_oauth_states', {
+  tokenHash: text('token_hash').primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  projectId: uuid('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+});
+export const repositories = pgTable('repositories', {
+  projectId: uuid('project_id')
+    .primaryKey()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  repositoryId: text('repository_id').notNull(),
+  installationId: text('installation_id').notNull(),
+  owner: text('owner').notNull(),
+  name: text('name').notNull(),
+  defaultBranch: text('default_branch').notNull(),
+  connectedBy: uuid('connected_by')
+    .notNull()
+    .references(() => users.id),
+  ...dates,
+});
+export const codeSessions = pgTable('code_sessions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  projectId: uuid('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  branch: text('branch').notNull(),
+  baseCommit: text('base_commit').notNull(),
+  createdBy: uuid('created_by')
+    .notNull()
+    .references(() => users.id),
+  ...dates,
+});
+export const codeFiles = pgTable(
+  'code_files',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    sessionId: uuid('session_id')
+      .notNull()
+      .references(() => codeSessions.id, { onDelete: 'cascade' }),
+    path: text('path').notNull(),
+    initialContent: text('initial_content').notNull(),
+    baseBlob: text('base_blob'),
+    mode: text('mode').notNull().default('100644'),
+  },
+  (t) => [uniqueIndex('code_file_session_path').on(t.sessionId, t.path)],
+);
+export const codeStates = pgTable('code_states', {
+  fileId: uuid('file_id')
+    .primaryKey()
+    .references(() => codeFiles.id, { onDelete: 'cascade' }),
+  yjsState: bytea('yjs_state').notNull(),
+  revision: integer('revision').default(1).notNull(),
+  savedAt: timestamp('saved_at', { withTimezone: true }).defaultNow().notNull(),
+});

@@ -6,6 +6,7 @@ node_modules/
 coverage/
 playwright-report/
 test-results/
+code-test-results/
 *.tsbuildinfo
 **/next-env.d.ts
 .local/
