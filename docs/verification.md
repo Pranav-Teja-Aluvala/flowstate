@@ -1,0 +1,27 @@
+# Verification record
+
+Environment: Windows, Node.js 24.18.0, real project-local PostgreSQL 18, Chromium through Playwright. Executed 08 November 2026. Test accounts and content are synthetic fixtures created by the actual application flows.
+
+| Check                                             | Result                                                        |
+| ------------------------------------------------- | ------------------------------------------------------------- |
+| Generated SQL migrations applied to PostgreSQL    | Passed                                                        |
+| ESLint                                            | Passed                                                        |
+| Strict TypeScript, web and collaboration services | Passed                                                        |
+| Next.js production build                          | Passed                                                        |
+| Vitest unit/integration suite                     | 11 tests passed                                               |
+| Playwright foundation flow                        | Passed                                                        |
+| Playwright board and two-user editor flow         | Passed                                                        |
+| Production dependency audit                       | Zero reported vulnerabilities                                 |
+| Full development dependency audit                 | 12 moderate findings in migration/lint tool dependency chains |
+| Docker Compose / container execution              | Not run; Docker unavailable locally                           |
+| Remote GitHub Actions                             | Configured; not run remotely                                  |
+| Database backup/restore drill                     | Documented; not executed                                      |
+| Load, latency, horizontal scaling                 | Not benchmarked                                               |
+
+Unit tests verify role capabilities, project validation, and bcrypt byte limits. Protocol integration tests use an actual Hocuspocus instance and PostgreSQL to verify concurrent updates, fresh-client recovery after server destruction/recreation without duplicate content, viewer write rejection, transient reconnection, hostile Origin rejection, invalid/expired tickets, revocation, payload size limits, and expired underlying sessions.
+
+Browser flows cover registration/login/logout, workspace and project creation, metadata editing and refresh persistence, invitation email binding, viewer write forgery, workspace isolation, member removal, task assignment/movement, document creation, simultaneous editing by independent accounts, cursor presence, content reload, and active editor-to-viewer changes. Screenshot assertions inspect actual rendered layouts, including the 390-pixel workspace viewport.
+
+The test suites were developed and corrected during implementation. Earlier failures included test navigation timing and cursor labels being compared as document text; final assertions exclude ephemeral labels when checking convergence. Passing tests do not establish production readiness, external audit, every possible concurrency interleaving, or capacity guarantees.
+
+The full npm audit currently flags moderate advisories in development tooling transitives (Drizzle Kit’s legacy esbuild loader and ESLint’s TypeScript/minimatch chain). The production dependency audit is separate. Do not apply forced major downgrades merely to suppress the report; validate a compatible upstream update before changing migration tooling. Recheck audits when installing because advisory data changes.

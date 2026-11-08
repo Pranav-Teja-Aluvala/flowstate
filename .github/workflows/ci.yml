@@ -1,0 +1,48 @@
+name: Verify FLOWSTATE
+on: [push, pull_request]
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: flowstate
+          POSTGRES_PASSWORD: ci_password_only
+          POSTGRES_DB: flowstate
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U flowstate -d flowstate"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://flowstate:ci_password_only@localhost:5432/flowstate
+      COLLABORATION_SECRET: ci_only_random_secret_for_test_execution_123456789
+      ALLOWED_ORIGINS: http://localhost:3000
+      NEXT_PUBLIC_COLLABORATION_URL: ws://localhost:1234
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run db:migrate
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - run: npm audit --omit=dev
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-failure
+          path: test-results
+  containers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build --target web -f infra/docker/Dockerfile .
+      - run: docker build --target collaboration -f infra/docker/Dockerfile .

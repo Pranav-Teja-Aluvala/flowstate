@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:18-bookworm
+    environment:
+      POSTGRES_USER: flowstate
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: flowstate
+    ports:
+      - '127.0.0.1:54329:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U flowstate -d flowstate']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  migrate:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile
+      target: migrate
+    environment:
+      DATABASE_URL: postgresql://flowstate:${POSTGRES_PASSWORD}@postgres:5432/flowstate
+    depends_on:
+      postgres:
+        condition: service_healthy
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile
+      target: web
+      args:
+        NEXT_PUBLIC_COLLABORATION_URL: ${NEXT_PUBLIC_COLLABORATION_URL:-ws://localhost:1234}
+    environment:
+      DATABASE_URL: postgresql://flowstate:${POSTGRES_PASSWORD}@postgres:5432/flowstate
+      COLLABORATION_SECRET: ${COLLABORATION_SECRET:?Set a random secret of at least 32 characters}
+      COOKIE_SECURE: 'false'
+    ports:
+      - '127.0.0.1:3000:3000'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+  collaboration:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile
+      target: collaboration
+    environment:
+      DATABASE_URL: postgresql://flowstate:${POSTGRES_PASSWORD}@postgres:5432/flowstate
+      COLLABORATION_SECRET: ${COLLABORATION_SECRET}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+    ports:
+      - '127.0.0.1:1234:1234'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+volumes:
+  postgres-data:
