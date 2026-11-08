@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { and, desc, eq } from 'drizzle-orm';
-import { db, projects, projectFiles } from '@flowstate/database';
+import { and, desc, eq, sql } from 'drizzle-orm';
+import { db, projects, projectFiles, projectFileVersions } from '@flowstate/database';
 import { canWrite } from '@flowstate/contracts';
 import { requireUser } from '@/lib/auth';
 import { userWorkspaces } from '@/lib/queries';
@@ -31,6 +31,11 @@ export default async function ProjectFiles({
     .from(projectFiles)
     .where(eq(projectFiles.projectId, projectId))
     .orderBy(desc(projectFiles.createdAt));
+  const [historyUsage] = await db
+    .select({ bytes: sql<number>`coalesce(sum(${projectFileVersions.size}),0)::int` })
+    .from(projectFileVersions)
+    .innerJoin(projectFiles, eq(projectFileVersions.fileId, projectFiles.id))
+    .where(eq(projectFiles.projectId, projectId));
   return (
     <Shell user={user} workspaces={spaces} active={workspaceId}>
       <header className="topbar">
@@ -85,8 +90,11 @@ export default async function ProjectFiles({
             <p className="muted">No files yet. Editors can upload the first file.</p>
           )}
           <p className="muted">
-            {(files.reduce((sum, file) => sum + file.size, 0) / (1024 * 1024)).toFixed(1)} / 100 MiB
-            used in this project.
+            {(
+              (files.reduce((sum, file) => sum + file.size, 0) + historyUsage.bytes) /
+              (1024 * 1024)
+            ).toFixed(1)}{' '}
+            / 100 MiB used in this project, including file history.
           </p>
         </section>
       </main>

@@ -11,6 +11,30 @@
   --sidebar: #f1f2eb;
   --radius: 10px;
 }
+.workspace-presence {
+  margin: 20px 0;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.presence-label {
+  font-size: 11px;
+  color: var(--muted);
+}
+.presence-people {
+  display: flex;
+  margin-top: 9px;
+  gap: 4px;
+}
+.presence-people .avatar {
+  width: 26px;
+  height: 26px;
+  font-size: 11px;
+}
+.workspace-task-summary {
+  color: var(--muted);
+  font-size: 12px;
+}
 * {
   box-sizing: border-box;
 }

@@ -24,10 +24,10 @@ describe('runtime review boundaries', () => {
     ]);
     const result = await collectRuntimeChanges(
       archive([
-        { name: 'workspace/src/main.ts', content: 'edited' },
-        { name: 'workspace/unchanged.txt', content: 'same' },
-        { name: 'workspace/.git/config', content: 'metadata' },
-        { name: 'workspace/generated.txt', content: 'untracked' },
+        { name: './src/main.ts', content: 'edited' },
+        { name: './unchanged.txt', content: 'same' },
+        { name: './.git/config', content: 'metadata' },
+        { name: './generated.txt', content: 'untracked' },
       ]),
       baseline,
     );
@@ -38,31 +38,38 @@ describe('runtime review boundaries', () => {
   it('rejects symlinks, unsafe paths and oversized tracked content', async () => {
     await expect(
       collectRuntimeChanges(
-        archive([{ name: 'workspace/known.txt', type: 'symlink' }]),
+        archive([{ name: './known.txt', type: 'symlink' }]),
         new Map([['known.txt', contentHash('before')]]),
       ),
     ).rejects.toThrow('regular UTF-8');
     await expect(
       collectRuntimeChanges(
-        archive([{ name: 'workspace/../escape', content: 'edited' }]),
+        archive([{ name: './../escape', content: 'edited' }]),
         new Map([['../escape', contentHash('before')]]),
       ),
     ).rejects.toThrow('Unsafe');
     await expect(
       collectRuntimeChanges(
-        archive([{ name: 'workspace/known.txt', content: 'x'.repeat(256 * 1024 + 1) }]),
+        archive([{ name: './known.txt', content: 'x'.repeat(256 * 1024 + 1) }]),
         new Map([['known.txt', contentHash('before')]]),
       ),
     ).rejects.toThrow('256 KiB');
   });
   it('bounds the number of files in one review', async () => {
     const entries = Array.from({ length: 21 }, (_, index) => ({
-      name: `workspace/file-${index}.txt`,
+      name: `./file-${index}.txt`,
       content: 'edited',
     }));
-    const baseline = new Map(entries.map((entry) => [entry.name.slice(10), contentHash('before')]));
+    const baseline = new Map(entries.map((entry) => [entry.name.slice(2), contentHash('before')]));
     await expect(collectRuntimeChanges(archive(entries), baseline)).rejects.toThrow(
       '20 changed files',
     );
+  });
+  it('preserves repository directories named workspace', async () => {
+    const changes = await collectRuntimeChanges(
+      archive([{ name: './workspace/config.txt', content: 'updated' }]),
+      new Map([['workspace/config.txt', contentHash('original')]]),
+    );
+    expect(changes[0].path).toBe('workspace/config.txt');
   });
 });

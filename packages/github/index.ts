@@ -12,7 +12,7 @@ import {
 } from '@flowstate/database';
 import { encryptToken, decryptToken } from './security';
 import { safeCodePath } from './security';
-export { safeCodePath, encryptToken, decryptToken } from './security';
+export { safeCodePath, encryptToken, decryptToken, githubRepositoryURL } from './security';
 export class GitHubError extends Error {}
 export type GitHubRepository = {
   id: number;

@@ -2,7 +2,8 @@ import { afterAll, beforeAll, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { PassThrough } from 'node:stream';
 import Docker from 'dockerode';
-import { putFiles } from '../../apps/runner/src/files';
+import { putFiles, runtimeArchive } from '../../apps/runner/src/files';
+import { collectRuntimeChanges, contentHash } from '../../apps/runner/src/changes';
 import { containerConfiguration } from '../../apps/runner/src/policy';
 const docker = new Docker({
   socketPath:
@@ -53,6 +54,16 @@ it('executes a source snapshot as non-root and retains writable workspace files'
   expect(
     await run(['node', '-e', 'console.log(require("node:fs").readFileSync("result.txt","utf8"))']),
   ).toContain('sandbox-ok');
+});
+it('reviews files from the running tmpfs rather than a stopped-container filesystem view', async () => {
+  await run(['node', '-e', 'require("node:fs").appendFileSync("result.txt","-changed")']);
+  const changes = await collectRuntimeChanges(
+    await runtimeArchive(container),
+    new Map([['result.txt', contentHash('sandbox-ok')]]),
+  );
+  expect(changes).toEqual([
+    { path: 'result.txt', baselineHash: contentHash('sandbox-ok'), content: 'sandbox-ok-changed' },
+  ]);
 });
 it('queues CLI publishing for explicit browser review without exposing GitHub credentials', async () => {
   expect(await run(['flowstate', 'push', 'Update the team prototype'])).toContain(

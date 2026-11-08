@@ -22,6 +22,7 @@ import {
   repositoryPath,
   safeCodePath,
   readRepositoryFile,
+  githubRepositoryURL,
   type GitHubRepository,
 } from '@flowstate/github';
 import { requireUser, requireMembership } from './auth';
@@ -42,7 +43,20 @@ export async function connectRepository(_state: ActionState, form: FormData): Pr
   try {
     const { project, user } = await projectAccess(form, 'manage');
     const installationId = z.string().regex(/^\d+$/).parse(field(form, 'installationId'));
-    const repositoryId = z.string().regex(/^\d+$/).parse(field(form, 'repositoryId'));
+    const url = z.string().max(300).parse(field(form, 'repositoryURL')).trim();
+    let requested: { owner: string; name: string } | undefined;
+    if (url) {
+      try {
+        requested = githubRepositoryURL(url);
+      } catch {
+        throw new GitHubError(
+          'Use a GitHub repository URL such as https://github.com/team/project.',
+        );
+      }
+    }
+    const repositoryId = requested
+      ? ''
+      : z.string().regex(/^\d+$/).parse(field(form, 'repositoryId'));
     const token = await githubToken(user.id);
     // Only accept repositories in an installation explicitly available to this user's GitHub App token.
     let selected: GitHubRepository | undefined;
@@ -51,7 +65,12 @@ export async function connectRepository(_state: ActionState, form: FormData): Pr
         token,
         `/user/installations/${installationId}/repositories?per_page=100&page=${page}`,
       );
-      selected = data.repositories.find((r) => String(r.id) === repositoryId);
+      selected = data.repositories.find((r) =>
+        requested
+          ? r.owner.login.toLowerCase() === requested.owner.toLowerCase() &&
+            r.name.toLowerCase() === requested.name.toLowerCase()
+          : String(r.id) === repositoryId,
+      );
       if (selected || data.repositories.length < 100) break;
     }
     if (!selected?.permissions?.push)
@@ -67,7 +86,7 @@ export async function connectRepository(_state: ActionState, form: FormData): Pr
         );
       await tx.insert(repositories).values({
         projectId: project.id,
-        repositoryId,
+        repositoryId: String(selected!.id),
         installationId,
         owner: selected!.owner.login,
         name: selected!.name,

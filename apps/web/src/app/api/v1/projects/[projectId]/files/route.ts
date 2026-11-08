@@ -1,7 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { db, projects, memberships, projectFiles, projectFileVersions } from '@flowstate/database';
+import {
+  db,
+  projects,
+  memberships,
+  projectFiles,
+  projectFileVersions,
+  activityEvents,
+} from '@flowstate/database';
 import { canWrite } from '@flowstate/contracts';
 import { currentUser } from '@/lib/auth';
 import {
@@ -81,6 +88,13 @@ export async function POST(request: Request, context: { params: Promise<{ projec
           storageKey: key,
           storageProvider: provider,
           createdBy: user.id,
+        });
+        await tx.insert(activityEvents).values({
+          workspaceId: access.workspaceId,
+          actorId: user.id,
+          action: 'file.uploaded',
+          objectType: 'file',
+          objectId: id,
         });
       } catch (error) {
         await discardUncommittedFile(provider, key).catch(() => {});

@@ -26,7 +26,7 @@ export async function collectRuntimeChanges(archive: Readable, baseline: Map<str
         fail(new RunnerError('Runtime archive exceeds the review limit.'));
         return;
       }
-      const path = header.name.replace(/^workspace\//, '');
+      const path = header.name.replace(/^\.\//, '');
       if (path !== '.git' && !path.startsWith('.git/')) total += header.size || 0;
       if (total > 32 * 1024 * 1024) {
         fail(new RunnerError('Runtime archive exceeds the review limit.'));

@@ -132,8 +132,14 @@ test('private-code browser flow with mocked GitHub and optional real Docker runn
         timeout: 30_000,
       });
       await owner.locator('.terminal-host').click();
-      await owner.keyboard.type("printf '// runtime edit\\n' >> src/index.ts");
+      await owner.keyboard.type(
+        "printf '// runtime edit\\n' >> src/index.ts; printf 'FLOWSTATE_RUNTIME_READY\\n'",
+        { delay: 5 },
+      );
       await owner.keyboard.press('Enter');
+      await expect(
+        owner.locator('.terminal-host').getByText('FLOWSTATE_RUNTIME_READY', { exact: true }),
+      ).toBeVisible();
       await owner.getByRole('button', { name: 'Review terminal changes', exact: true }).click();
       await expect(owner.locator('.runtime-review summary')).toContainText('src/index.ts');
       await owner.getByRole('button', { name: 'Import reviewed changes', exact: true }).click();

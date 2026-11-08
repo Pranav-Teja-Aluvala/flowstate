@@ -34,11 +34,19 @@ export async function createBoard(_state: ActionState, form: FormData): Promise<
   let destination: string;
   try {
     const projectId = uuid(form, 'projectId');
-    const { project } = await projectAccess(projectId);
-    const [board] = await db
-      .insert(boards)
-      .values({ projectId, name: nameSchema.parse(value(form, 'name')) })
-      .returning();
+    const { project, user } = await projectAccess(projectId);
+    const name = nameSchema.parse(value(form, 'name'));
+    const board = await db.transaction(async (tx) => {
+      const [created] = await tx.insert(boards).values({ projectId, name }).returning();
+      await tx.insert(activityEvents).values({
+        workspaceId: project.workspaceId,
+        actorId: user.id,
+        action: 'board.created',
+        objectType: 'board',
+        objectId: created.id,
+      });
+      return created;
+    });
     destination = `/w/${project.workspaceId}/p/${projectId}?board=${board.id}`;
   } catch (error) {
     return failure(error);
@@ -51,7 +59,7 @@ export async function createColumn(_state: ActionState, form: FormData): Promise
     const boardId = uuid(form, 'boardId');
     const board = await db.query.boards.findFirst({ where: eq(boards.id, boardId) });
     if (!board) throw new Error('Board not found.');
-    await projectAccess(board.projectId);
+    const { project, user } = await projectAccess(board.projectId);
     const title = nameSchema.parse(value(form, 'title'));
     await db.transaction(async (tx) => {
       await tx.select().from(boards).where(eq(boards.id, boardId)).for('update');
@@ -60,6 +68,13 @@ export async function createColumn(_state: ActionState, form: FormData): Promise
         boardId,
         title,
         sortKey: existing.length ? Math.max(...existing.map((c) => c.sortKey)) + 1 : 0,
+      });
+      await tx.insert(activityEvents).values({
+        workspaceId: project.workspaceId,
+        actorId: user.id,
+        action: 'column.created',
+        objectType: 'board',
+        objectId: boardId,
       });
     });
   } catch (error) {
@@ -291,10 +306,21 @@ export async function moveTask(input: {
 export async function createDocument(_state: ActionState, form: FormData): Promise<ActionState> {
   try {
     const projectId = uuid(form, 'projectId');
-    const { user } = await projectAccess(projectId);
-    await db
-      .insert(documents)
-      .values({ projectId, createdBy: user.id, title: nameSchema.parse(value(form, 'title')) });
+    const { user, project } = await projectAccess(projectId);
+    const title = nameSchema.parse(value(form, 'title'));
+    await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(documents)
+        .values({ projectId, createdBy: user.id, title })
+        .returning();
+      await tx.insert(activityEvents).values({
+        workspaceId: project.workspaceId,
+        actorId: user.id,
+        action: 'document.created',
+        objectType: 'document',
+        objectId: created.id,
+      });
+    });
   } catch (error) {
     return failure(error);
   }
@@ -306,11 +332,21 @@ export async function renameDocument(_state: ActionState, form: FormData): Promi
     const documentId = uuid(form, 'documentId');
     const document = await db.query.documents.findFirst({ where: eq(documents.id, documentId) });
     if (!document) throw new Error('Document not found.');
-    await projectAccess(document.projectId);
-    await db
-      .update(documents)
-      .set({ title: nameSchema.parse(value(form, 'title')), updatedAt: new Date() })
-      .where(eq(documents.id, documentId));
+    const { user, project } = await projectAccess(document.projectId);
+    const title = nameSchema.parse(value(form, 'title'));
+    await db.transaction(async (tx) => {
+      await tx
+        .update(documents)
+        .set({ title, updatedAt: new Date() })
+        .where(eq(documents.id, documentId));
+      await tx.insert(activityEvents).values({
+        workspaceId: project.workspaceId,
+        actorId: user.id,
+        action: 'document.renamed',
+        objectType: 'document',
+        objectId: documentId,
+      });
+    });
   } catch (error) {
     return failure(error);
   }

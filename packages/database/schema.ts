@@ -67,6 +67,19 @@ export const workspaceNotes = pgTable('workspace_notes', {
   body: text('body').notNull(),
   ...dates,
 });
+export const workspacePresence = pgTable(
+  'workspace_presence',
+  {
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    sessionHash: text('session_hash')
+      .notNull()
+      .references(() => sessions.tokenHash, { onDelete: 'cascade' }),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.workspaceId, table.sessionHash] })],
+);
 export const projects = pgTable('projects', {
   id: uuid('id').defaultRandom().primaryKey(),
   workspaceId: uuid('workspace_id')

@@ -13,6 +13,7 @@ The owner explicitly requested combining old GitHub commits into a clean version
 ## Implemented in this branch
 
 - Workspace team notes with author/time metadata, server-enforced write permissions and a recent-activity feed derived from actual stored events.
+- Workspace presence comes from authenticated heartbeats, expires after 35 seconds, excludes expired sessions/non-members and is deduplicated across sessions. Task summaries count actual tasks in the current workspace.
 - Task priorities (low, normal, high, urgent) and task deletion with confirmation, workspace authorization and stale-version checks.
 - Optional ONLYOFFICE integration for uploaded DOCX/XLSX/PPTX/PDF files. Signed configurations enforce viewer/editor modes; source tickets bind file/session/key and expire. Signed final-save callbacks validate the current file key, editor membership, original file format, configured cache origin and project quota. Old file bytes remain downloadable as previous versions.
 - Runtime review/import for existing tracked UTF-8 files, capped at 20 files/512 KiB. Shared-buffer hashes detect stale terminal snapshots; imports travel through the authenticated collaboration service and wait for durable acknowledgement. Sync refuses to overwrite unimported terminal work.
@@ -23,7 +24,7 @@ The owner explicitly requested combining old GitHub commits into a clean version
 
 Office transport tests use a clearly labelled service fixture. They verify configuration, signed source access, save-back bytes, previous versions, duplicate callbacks and revocation; they do not establish real Office format fidelity or two-user Office-engine behavior. Docker CLI/terminal execution, actual GitHub App activation, hosted Supabase/Vercel and live Sentry event delivery still require external services. They must not be described as verified merely because fixture tests pass.
 
-The core Tiptap/Yjs editor and its server-restart persistence remain genuine separate functionality. Office editing is supplied by a separate engine, not by pretending the rich-text editor can edit arbitrary Office files.
+The core Tiptap/Yjs editor and its server-restart persistence remain genuine separate functionality. Office editing is supplied by a separate engine, not by pretending the rich-text editor can edit arbitrary Office files. The real Office-engine CI job has now passed on commit `060eb5f`: both Word users' edits survived save-back, and Excel, PowerPoint and PDF fixtures opened. Docker isolation and CLI unit checks passed too; the complete Docker browser review/import flow still needs a successful rerun after its live-filesystem review fix.
 
 ## Remaining release work
 

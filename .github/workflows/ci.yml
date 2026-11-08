@@ -71,10 +71,6 @@ jobs:
       - run: npm ci
       - run: npm run setup
       - run: docker compose --env-file .env.selfhost config --quiet
-      - run: docker build --target web -t flowstate-web:ci -f infra/docker/Dockerfile .
-      - name: Check private configuration is excluded from image
-        run: docker run --rm --entrypoint node flowstate-web:ci -e "if(require('fs').existsSync('/app/.env.selfhost')) process.exit(1)"
-      - run: docker build --target collaboration -f infra/docker/Dockerfile .
       - run: docker build -t flowstate-runner:local -f infra/docker/runner.Dockerfile .
       - run: npm run test:docker
       - run: npm run db:migrate
@@ -83,10 +79,15 @@ jobs:
       - run: npm run test:code
         env:
           FLOWSTATE_LIVE_RUNNER: '1'
+      - run: docker build --target web -t flowstate-web:ci -f infra/docker/Dockerfile .
+      - name: Check private configuration is excluded from image
+        run: docker run --rm --entrypoint node flowstate-web:ci -e "if(require('fs').existsSync('/app/.env.selfhost')) process.exit(1)"
+      - run: docker build --target collaboration -f infra/docker/Dockerfile .
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: live-runner-failure
+          retention-days: 3
           path: code-test-results
   office-engine:
     runs-on: ubuntu-latest
@@ -137,4 +138,5 @@ jobs:
         if: failure()
         with:
           name: real-office-failure
+          retention-days: 3
           path: office-live-results

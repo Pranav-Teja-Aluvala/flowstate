@@ -90,6 +90,33 @@ test('team notes, task priorities and guarded deletion work across workspace rol
     await page.context().addCookies([{ name: 'flowstate_session', value: ownerToken, url: base }]);
     await viewerContext.addCookies([{ name: 'flowstate_session', value: viewerToken, url: base }]);
     await page.goto(`/w/${team}`);
+    await expect(page.getByRole('region', { name: 'Workspace presence' })).toContainText(
+      'here now',
+    );
+    const presencePath = `${base}/api/v1/workspaces/${team}/presence`;
+    const heartbeat = { headers: { origin: base } };
+    expect(
+      (
+        await page.request.post(presencePath, { headers: { origin: 'https://other.example' } })
+      ).status(),
+    ).toBe(403);
+    await viewer.request.post(presencePath, heartbeat);
+    let presence = await (await page.request.post(presencePath, heartbeat)).json();
+    expect(presence.people.map((person: { name: string }) => person.name).sort()).toEqual([
+      'Note owner',
+      'Note viewer',
+    ]);
+    expect(
+      (
+        await page.request.post(`${base}/api/v1/workspaces/${personal}/presence`, heartbeat)
+      ).status(),
+    ).toBe(404);
+    await pool.query(
+      "UPDATE workspace_presence SET last_seen_at=now()-interval '1 minute' WHERE session_hash=$1",
+      [createHash('sha256').update(viewerToken).digest('hex')],
+    );
+    presence = await (await page.request.post(presencePath, heartbeat)).json();
+    expect(presence.people.map((person: { name: string }) => person.name)).toEqual(['Note owner']);
     await page.getByRole('button', { name: 'Share note', exact: true }).click();
     await page.getByLabel('Your note').fill('Review the prototype together.');
     await page.getByRole('dialog').getByRole('button', { name: 'Share note', exact: true }).click();
@@ -98,6 +125,12 @@ test('team notes, task priorities and guarded deletion work across workspace rol
     await viewer.goto(`/w/${team}`);
     await expect(viewer.getByText('Review the prototype together.', { exact: true })).toBeVisible();
     await expect(viewer.getByRole('button', { name: 'Share note', exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Share note', exact: true }).click();
+    await page.getByLabel('Your note').fill('A second update arrives without a reload.');
+    await page.getByRole('dialog').getByRole('button', { name: 'Share note', exact: true }).click();
+    await expect(
+      viewer.getByText('A second update arrives without a reload.', { exact: true }),
+    ).toBeVisible({ timeout: 20_000 });
     await viewer.goto(`/w/${personal}`);
     await viewer.getByRole('button', { name: 'Share note', exact: true }).click();
     await viewer.getByLabel('Your note').fill('Blocked forged note');
@@ -120,6 +153,11 @@ test('team notes, task priorities and guarded deletion work across workspace rol
       .locator('.task-card')
       .filter({ has: page.getByRole('button', { name: 'Review prototype', exact: true }) });
     await expect(taskCard.locator('.task-priority')).toHaveText('urgent');
+    await page.goto(`/w/${team}`);
+    await expect(page.getByLabel('Workspace task summary')).toHaveText(
+      '1 tasks · 0 assigned to you',
+    );
+    await page.goto(`/w/${team}/p/${project}`);
     await page.getByRole('button', { name: 'Review prototype', exact: true }).click();
     await page.getByRole('button', { name: 'Delete task', exact: true }).click();
     const dialog = page.getByRole('dialog');

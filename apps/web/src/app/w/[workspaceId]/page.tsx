@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { asc, desc, eq } from 'drizzle-orm';
+import { asc, desc, eq, sql } from 'drizzle-orm';
 import { ArrowUpRight, FolderOpen, Users, ArrowRight, LayoutGrid } from 'lucide-react';
 import {
   db,
@@ -9,6 +9,9 @@ import {
   workspaceNotes,
   users,
   activityEvents,
+  tasks,
+  columns,
+  boards,
 } from '@flowstate/database';
 import { canWrite } from '@flowstate/contracts';
 import { requireUser } from '@/lib/auth';
@@ -23,7 +26,7 @@ export default async function Workspace({ params }: { params: Promise<{ workspac
   const spaces = await userWorkspaces(user.id);
   const workspace = spaces.find((w) => w.id === workspaceId);
   if (!workspace) notFound();
-  const [items, members, notes, activity] = await Promise.all([
+  const [items, members, notes, activity, summary] = await Promise.all([
     db
       .select()
       .from(projects)
@@ -57,6 +60,16 @@ export default async function Workspace({ params }: { params: Promise<{ workspac
       .where(eq(activityEvents.workspaceId, workspaceId))
       .orderBy(desc(activityEvents.createdAt))
       .limit(8),
+    db
+      .select({
+        total: sql<number>`count(*)::int`,
+        assigned: sql<number>`count(*) filter (where ${tasks.assigneeId} = ${user.id})::int`,
+      })
+      .from(tasks)
+      .innerJoin(columns, eq(tasks.columnId, columns.id))
+      .innerJoin(boards, eq(columns.boardId, boards.id))
+      .innerJoin(projects, eq(boards.projectId, projects.id))
+      .where(eq(projects.workspaceId, workspaceId)),
   ]);
   return (
     <Shell user={user} workspaces={spaces} active={workspaceId}>
@@ -129,6 +142,9 @@ export default async function Workspace({ params }: { params: Promise<{ workspac
             </strong>
           </Link>
         </section>
+        <p className="workspace-task-summary" aria-label="Workspace task summary">
+          {summary[0].total} tasks · {summary[0].assigned} assigned to you
+        </p>
         <div className="section-heading">
           <h2>
             <LayoutGrid size={17} />

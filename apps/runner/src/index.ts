@@ -3,14 +3,14 @@ import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import Docker from 'dockerode';
 import { WebSocketServer, WebSocket } from 'ws';
-import { Readable, PassThrough } from 'node:stream';
+import { PassThrough } from 'node:stream';
 import { z } from 'zod';
 import { authorizeCodeSession, GitHubError } from '@flowstate/github';
 import { db, activityEvents, projects, pool } from '@flowstate/database';
 import { eq } from 'drizzle-orm';
 import { verifyRunnerTicket, containerConfiguration, RunnerError } from './policy';
 import { repositorySnapshot } from './snapshot';
-import { putFiles } from './files';
+import { putFiles, runtimeArchive } from './files';
 import { collectRuntimeChanges, contentHash } from './changes';
 const secret = process.env.COLLABORATION_SECRET || '';
 if (secret.length < 32)
@@ -249,7 +249,7 @@ wsServer.on('connection', (ws) => {
           env.syncing = true;
           try {
             const changes = await collectRuntimeChanges(
-              (await env.container.getArchive({ path: '/workspace' })) as Readable,
+              await runtimeArchive(env.container),
               env.baseline,
             );
             send(ws, { type: 'changes', changes });
@@ -262,7 +262,7 @@ wsServer.on('connection', (ws) => {
             const files = await repositorySnapshot(access.userId, access.sessionId);
             const current = new Map(files.map((file) => [file.path, contentHash(file.content)]));
             const changes = await collectRuntimeChanges(
-              (await env.container.getArchive({ path: '/workspace' })) as Readable,
+              await runtimeArchive(env.container),
               env.baseline,
             );
             if (changes.some((change) => contentHash(change.content) !== current.get(change.path)))

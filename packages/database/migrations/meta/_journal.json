@@ -50,6 +50,13 @@
       "when": 1794171261316,
       "tag": "0006_shocking_quicksilver",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794173777495,
+      "tag": "0007_lucky_owl",
+      "breakpoints": true
     }
   ]
 }

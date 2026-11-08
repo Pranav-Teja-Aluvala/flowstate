@@ -10,6 +10,7 @@ import {
   CircleHelp,
 } from 'lucide-react';
 import { logout } from '@/lib/actions';
+import { WorkspacePresence } from './workspace-presence';
 type Workspace = { id: string; name: string };
 export function Shell({
   user,
@@ -65,6 +66,7 @@ export function Shell({
             </Link>
           )}
         </nav>
+        {active && <WorkspacePresence key={active} workspaceId={active} />}
         <div className="sidebar-note">
           <span className="note-line" />
           <p>
