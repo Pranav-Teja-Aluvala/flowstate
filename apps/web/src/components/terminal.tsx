@@ -4,6 +4,10 @@ import type { Terminal } from '@xterm/xterm';
 import type { FitAddon } from '@xterm/addon-fit';
 import { Play, Square, RefreshCw, TerminalSquare } from 'lucide-react';
 import '@xterm/xterm/css/xterm.css';
+import { importRuntimeChanges } from '@/lib/runtime-actions';
+import { publishPullRequest } from '@/lib/github-actions';
+import { ActionForm } from './forms';
+type RuntimeChange = { path: string; baselineHash: string; content: string };
 export function SharedTerminal({
   projectId,
   sessionId,
@@ -22,6 +26,11 @@ export function SharedTerminal({
   const [status, setStatus] = useState('Stopped');
   const [error, setError] = useState('');
   const [open, setOpen] = useState(false);
+  const [changes, setChanges] = useState<RuntimeChange[] | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [publishRequest, setPublishRequest] = useState<{ id: string; title: string } | null>(null);
+  const [reviewed, setReviewed] = useState(false);
   useEffect(() => {
     if (!enabled || !open || !host.current) return;
     let cancelled = false;
@@ -66,6 +75,23 @@ export function SharedTerminal({
         ws.onmessage = (event) => {
           const message = JSON.parse(event.data);
           if (message.type === 'output') term?.write(message.data);
+          if (message.type === 'changes') {
+            setChanges(message.changes);
+            setReviewed(message.changes.length === 0);
+            setNotice(
+              message.changes.length
+                ? 'Review the terminal edits below before importing.'
+                : 'No tracked text-file changes in the terminal.',
+            );
+          }
+          if (message.type === 'publish-review') {
+            setPublishRequest({ id: message.id, title: message.title });
+            setReviewed(false);
+            setNotice(
+              'The terminal requested a publish review. Review terminal changes first; publishing uses saved shared code.',
+            );
+          }
+          if (message.type === 'operation-error') setError(message.message);
           if (message.type === 'ready') {
             setStatus('Running');
             ws!.send(JSON.stringify({ type: 'resize', cols: term!.cols, rows: term!.rows }));
@@ -144,6 +170,16 @@ export function SharedTerminal({
             <>
               <button
                 className="button secondary"
+                disabled={!editable || status !== 'Running' || importing}
+                onClick={() => {
+                  setError('');
+                  socket.current?.send(JSON.stringify({ type: 'review' }));
+                }}
+              >
+                Review terminal changes
+              </button>
+              <button
+                className="button secondary"
                 disabled={!editable || status !== 'Running'}
                 onClick={() => socket.current?.send(JSON.stringify({ type: 'sync' }))}
               >
@@ -181,6 +217,74 @@ export function SharedTerminal({
         <p className="feedback error" role="alert">
           {error}
         </p>
+      )}
+      {notice && (
+        <p className="feedback success" role="status">
+          {notice}
+        </p>
+      )}
+      {changes && changes.length > 0 && (
+        <section className="runtime-review">
+          <h3>Review before importing</h3>
+          <p>
+            Importing updates shared code for everyone. New files, deleted files and binary changes
+            are not imported.
+          </p>
+          {changes.map((change) => (
+            <details key={change.path}>
+              <summary>{change.path}</summary>
+              <pre>{change.content}</pre>
+            </details>
+          ))}
+          <button
+            className="button primary"
+            disabled={!editable || importing}
+            onClick={async () => {
+              setImporting(true);
+              setError('');
+              try {
+                const result = await importRuntimeChanges(sessionId, changes);
+                if (result.error) setError(result.error);
+                else {
+                  setNotice(result.success || 'Runtime changes imported.');
+                  setChanges(null);
+                  setReviewed(true);
+                }
+              } catch {
+                setError('Import interrupted. Check the shared editor before retrying.');
+              } finally {
+                setImporting(false);
+              }
+            }}
+          >
+            {importing ? 'Importing…' : 'Import reviewed changes'}
+          </button>
+        </section>
+      )}
+      {publishRequest && editable && (
+        <section className="runtime-review">
+          <h3>Confirm terminal publish request</h3>
+          <p>
+            Review and import terminal changes first. Publishing creates a new feature branch and
+            pull request from saved shared code.
+          </p>
+          {reviewed ? (
+            <ActionForm
+              key={publishRequest.id}
+              action={publishPullRequest}
+              label="Confirm branch and pull request"
+            >
+              <input type="hidden" name="projectId" value={projectId} />
+              <input type="hidden" name="sessionId" value={sessionId} />
+              <label>
+                Commit message
+                <input name="title" defaultValue={publishRequest.title} required maxLength={150} />
+              </label>
+            </ActionForm>
+          ) : (
+            <p className="muted">Use “Review terminal changes” above to continue.</p>
+          )}
+        </section>
       )}
       {open && <div className="terminal-host" ref={host} aria-label="Shared terminal output" />}
     </section>

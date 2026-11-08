@@ -3,6 +3,8 @@ node_modules
 .local
 test-results
 code-test-results
+office-test-results
+office-live-results
 playwright-report
 package-lock.json
 packages/database/migrations/meta

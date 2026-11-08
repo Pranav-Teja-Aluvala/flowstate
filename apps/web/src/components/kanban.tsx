@@ -2,13 +2,14 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { GripVertical, Plus, ArrowUp, ArrowDown } from 'lucide-react';
-import { moveTask, saveTask } from '@/lib/work-actions';
-import { ActionForm } from './forms';
+import { moveTask, saveTask, deleteTask } from '@/lib/work-actions';
+import { ActionForm, Dialog } from './forms';
 type Task = {
   id: string;
   columnId: string;
   title: string;
   description: string;
+  priority: 'low' | 'normal' | 'high' | 'urgent';
   assigneeId: string | null;
   sortKey: number;
   version: number;
@@ -64,6 +65,15 @@ export function Kanban({
                 {m.name}
               </option>
             ))}
+          </select>
+        </label>
+        <label>
+          Priority
+          <select name="priority" aria-label="Priority" defaultValue={task?.priority || 'normal'}>
+            <option value="low">Low</option>
+            <option value="normal">Normal</option>
+            <option value="high">High</option>
+            <option value="urgent">Urgent</option>
           </select>
         </label>
       </>
@@ -139,6 +149,11 @@ export function Kanban({
                     </button>
                   </div>
                   {task.description && <p>{task.description}</p>}
+                  {task.priority !== 'normal' && (
+                    <span className={`task-priority priority-${task.priority}`}>
+                      {task.priority}
+                    </span>
+                  )}
                   {task.assigneeId && (
                     <span className="task-assignee">
                       {members.find((m) => m.id === task.assigneeId)?.name || 'Former member'}
@@ -183,9 +198,18 @@ export function Kanban({
                     </div>
                   )}
                   {editing === task.id && (
-                    <ActionForm action={saveTask} label="Save task" key={task.version}>
-                      {fields(column.id, task)}
-                    </ActionForm>
+                    <>
+                      <ActionForm action={saveTask} label="Save task" key={task.version}>
+                        {fields(column.id, task)}
+                      </ActionForm>
+                      <Dialog title="Delete task?" trigger="Delete task" destructive>
+                        <p>Delete “{task.title}”? This removes the task from the board.</p>
+                        <ActionForm action={deleteTask} label="Confirm task deletion" destructive>
+                          <input type="hidden" name="taskId" value={task.id} />
+                          <input type="hidden" name="version" value={task.version} />
+                        </ActionForm>
+                      </Dialog>
+                    </>
                   )}
                 </article>
               ))}

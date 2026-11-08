@@ -1,5 +1,16 @@
 'use client';
-export default function Error({ reset }: { reset: () => void }) {
+import { useEffect } from 'react';
+export default function Error({
+  error,
+  reset,
+}: {
+  error: globalThis.Error & { digest?: string };
+  reset: () => void;
+}) {
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_SENTRY_DSN)
+      void import('@sentry/nextjs').then((Sentry) => Sentry.captureException(error));
+  }, [error]);
   return (
     <main className="fallback">
       <p className="eyebrow">A SMALL INTERRUPTION</p>

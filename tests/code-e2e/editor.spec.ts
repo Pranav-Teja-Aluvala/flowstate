@@ -4,7 +4,7 @@ import { randomBytes, createHash } from 'node:crypto';
 import { Pool } from 'pg';
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 import { encryptToken } from '../../packages/github/security.ts';
-test('private-code browser flow with mocked GitHub: shared edits, saved PR snapshot, viewer and unavailable runner', async ({
+test('private-code browser flow with mocked GitHub and optional real Docker runner', async ({
   browser,
 }) => {
   process.env.GITHUB_TOKEN_KEY = '1'.repeat(64);
@@ -127,9 +127,37 @@ test('private-code browser flow with mocked GitHub: shared edits, saved PR snaps
       0,
     );
     await owner.getByRole('button', { name: 'Start terminal', exact: true }).click();
-    await expect(owner.locator('.terminal-panel .feedback.error')).toContainText(
-      'Terminal unavailable',
-    );
+    if (process.env.FLOWSTATE_LIVE_RUNNER === '1') {
+      await expect(owner.locator('.terminal-panel header [role="status"]')).toHaveText('Running', {
+        timeout: 30_000,
+      });
+      await owner.locator('.terminal-host').click();
+      await owner.keyboard.type("printf '// runtime edit\\n' >> src/index.ts");
+      await owner.keyboard.press('Enter');
+      await owner.getByRole('button', { name: 'Review terminal changes', exact: true }).click();
+      await expect(owner.locator('.runtime-review summary')).toContainText('src/index.ts');
+      await owner.getByRole('button', { name: 'Import reviewed changes', exact: true }).click();
+      await expect(b).toContainText('// runtime edit');
+      await owner.locator('.terminal-host').click();
+      await owner.keyboard.type('flowstate push "Update the shared code"');
+      await owner.keyboard.press('Enter');
+      await expect(
+        owner.getByRole('heading', { name: 'Confirm terminal publish request' }),
+      ).toBeVisible({ timeout: 15_000 });
+      await owner.getByRole('button', { name: 'Review terminal changes', exact: true }).click();
+      await owner.getByRole('button', { name: 'Import reviewed changes', exact: true }).click();
+      await owner
+        .getByRole('button', { name: 'Confirm branch and pull request', exact: true })
+        .click();
+      await expect(
+        owner.locator('.runtime-review').getByRole('link', { name: /Open pull request on GitHub/ }),
+      ).toHaveAttribute('href', 'https://github.com/flowstate-fixture/repo/pull/1');
+      await owner.getByRole('button', { name: 'Stop workspace', exact: true }).click();
+    } else {
+      await expect(owner.locator('.terminal-panel .feedback.error')).toContainText(
+        'Terminal unavailable',
+      );
+    }
     await owner.screenshot({
       path: '.local/code-editor-fixture.png',
       fullPage: true,

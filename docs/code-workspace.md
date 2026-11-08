@@ -4,6 +4,16 @@ Self-hosted core instances disable execution by default. Set `RUNNER_ENABLED=tru
 
 The code workspace is an extension requested after the original FLOWSTATE document-and-Kanban MVP. It adds repository activity, branch-based code sessions, CodeMirror/Yjs source editing with presence, PR publishing, and an xterm terminal connected to a separate Docker runner process.
 
+## Version 2 runtime workflow
+
+The runner initializes an ephemeral local Git repository from its fetched snapshot. Use `flowstate status` or `flowstate diff` to inspect local changes. Use **Review terminal changes**, inspect the changed text and choose **Import reviewed changes** to update shared buffers. Imports use authenticated Yjs rooms, compare baseline hashes and wait for durable acknowledgement. A stale shared buffer is rejected instead of silently replaced. Sync also refuses to overwrite terminal edits that have not been imported.
+
+`flowstate push "Short commit message"` queues a review request for connected editors. It does not push automatically. In the browser, review/import the terminal changes and confirm the new feature branch and pull request. The authenticated host-side GitHub integration publishes saved shared buffers; credentials are never copied into the container. The container's local commits/history are not uploaded as a remote Git history. Ordinary network-dependent `git push` and dependency downloads remain unavailable inside the network-isolated sandbox.
+
+Runtime import currently supports existing tracked UTF-8 files only, up to 256 KiB each, 20 files and 512 KiB in one review. New files, deleted files, binary files and executable-mode changes are not imported. These limits must remain visible in the UI. The import protocol has real collaboration-service/PostgreSQL tests; actual Docker/CLI interaction is still unverified on this machine.
+
+Set the web service's `COLLABORATION_INTERNAL_URL` if it cannot reach the default `ws://127.0.0.1:1234`. Compose sets it to `ws://collaboration:1234`.
+
 ## Start the local runner
 
 Install and start Docker Desktop with Linux containers. The current development machine did not have Docker available, so actual container execution is not yet verified. Keep the web and collaboration services running normally, configure GitHub as described in [GitHub setup](github-setup.md), then:
@@ -31,7 +41,7 @@ Use the host development workflow for local execution. The existing Compose file
 
 Create a code session from a branch in **Code & GitHub**. A session is pinned to a commit. Open regular UTF-8 files up to 256 KiB; open files become shared Yjs buffers stored separately from rich-text documents. Authorized editors can change these buffers together. Local code buffers do not modify GitHub until a user explicitly publishes a PR.
 
-Select **Start terminal** to materialize the repository at the session commit, overlay saved shared buffers, and start a shell inside a new container. Run Node.js/Python commands there. Other authorized members can join the same terminal; viewers can watch an existing terminal but cannot start it or send input. Use **Sync saved files** after source edits to update the container, then run the command again. Terminal filesystem changes are ephemeral and are not imported into shared buffers or published to GitHub. Stop workspace destroys the container; disconnecting a tab only disconnects that client.
+Select **Start terminal** to materialize the repository at the session commit, overlay saved shared buffers, and start a shell inside a new container. Run Node.js/Python commands there. Other authorized members can join the same terminal; viewers can watch an existing terminal but cannot start it or send input. Use **Sync saved files** after source edits to update the container, then run the command again. Runtime edits remain ephemeral until reviewed and imported as described above. Stop workspace destroys the container; disconnecting a tab only disconnects that client.
 
 The base image has Node.js, npm, Python, and Git. Runtime networking is disabled, so dependency downloads, remote services, package installs, and application previews are not available by default. For repositories requiring dependencies, an operator must prepare a trusted image with dependencies available without network access. This initial runner supports regular repositories up to 500 files, 1 MiB per file and 20 MiB total; it refuses truncated trees, symlinks, and submodules. It is not a general replacement for Codespaces.
 

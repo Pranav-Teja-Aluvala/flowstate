@@ -1,21 +1,29 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { asc, eq } from 'drizzle-orm';
+import { asc, desc, eq } from 'drizzle-orm';
 import { ArrowUpRight, FolderOpen, Users, ArrowRight, LayoutGrid } from 'lucide-react';
-import { db, projects, memberships } from '@flowstate/database';
+import {
+  db,
+  projects,
+  memberships,
+  workspaceNotes,
+  users,
+  activityEvents,
+} from '@flowstate/database';
 import { canWrite } from '@flowstate/contracts';
 import { requireUser } from '@/lib/auth';
 import { userWorkspaces } from '@/lib/queries';
 import { saveProject } from '@/lib/actions';
 import { ActionForm, Dialog } from '@/components/forms';
 import { Shell } from '@/components/shell';
+import { postTeamNote } from '@/lib/work-actions';
 export default async function Workspace({ params }: { params: Promise<{ workspaceId: string }> }) {
   const { workspaceId } = await params;
   const user = await requireUser();
   const spaces = await userWorkspaces(user.id);
   const workspace = spaces.find((w) => w.id === workspaceId);
   if (!workspace) notFound();
-  const [items, members] = await Promise.all([
+  const [items, members, notes, activity] = await Promise.all([
     db
       .select()
       .from(projects)
@@ -25,6 +33,30 @@ export default async function Workspace({ params }: { params: Promise<{ workspac
       .select({ userId: memberships.userId })
       .from(memberships)
       .where(eq(memberships.workspaceId, workspaceId)),
+    db
+      .select({
+        id: workspaceNotes.id,
+        body: workspaceNotes.body,
+        author: users.name,
+        createdAt: workspaceNotes.createdAt,
+      })
+      .from(workspaceNotes)
+      .innerJoin(users, eq(workspaceNotes.authorId, users.id))
+      .where(eq(workspaceNotes.workspaceId, workspaceId))
+      .orderBy(desc(workspaceNotes.createdAt))
+      .limit(20),
+    db
+      .select({
+        id: activityEvents.id,
+        action: activityEvents.action,
+        actor: users.name,
+        createdAt: activityEvents.createdAt,
+      })
+      .from(activityEvents)
+      .innerJoin(users, eq(activityEvents.actorId, users.id))
+      .where(eq(activityEvents.workspaceId, workspaceId))
+      .orderBy(desc(activityEvents.createdAt))
+      .limit(8),
   ]);
   return (
     <Shell user={user} workspaces={spaces} active={workspaceId}>
@@ -139,6 +171,61 @@ export default async function Workspace({ params }: { params: Promise<{ workspac
             <p>Create your first project to give the work a home.</p>
           </section>
         )}
+        <section className="settings-grid workspace-updates">
+          <section className="settings-card">
+            <h2>Team notes</h2>
+            {canWrite(workspace.role) && (
+              <Dialog title="Share a team note" trigger="Share note">
+                <ActionForm action={postTeamNote} label="Share note">
+                  <input type="hidden" name="workspaceId" value={workspaceId} />
+                  <label>
+                    Your note
+                    <textarea
+                      name="body"
+                      required
+                      maxLength={2000}
+                      placeholder="Share context, a decision or a quick update…"
+                    />
+                  </label>
+                </ActionForm>
+              </Dialog>
+            )}
+            {notes.length ? (
+              <ol className="team-notes">
+                {notes.map((note) => (
+                  <li key={note.id}>
+                    <p className="note-body">{note.body}</p>
+                    <small>
+                      {note.author} ·{' '}
+                      {note.createdAt.toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' })}
+                    </small>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="muted">A place for your team’s decisions and updates.</p>
+            )}
+          </section>
+          <section className="settings-card">
+            <h2>Recent activity</h2>
+            {activity.length ? (
+              <ol className="team-notes">
+                {activity.map((event) => (
+                  <li key={event.id}>
+                    <p>
+                      {event.actor} · {event.action.replaceAll('.', ' ')}
+                    </p>
+                    <small>
+                      {event.createdAt.toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' })}
+                    </small>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="muted">Workspace activity will appear here as your team works.</p>
+            )}
+          </section>
+        </section>
         <footer className="page-footer">
           <span>Thoughtful work starts here.</span>
           <span>

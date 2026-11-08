@@ -119,6 +119,7 @@ test('accounts, persisted projects, invitations, workspace isolation, and viewer
 
   await owner.goto(workspaceUrl);
   await mkdir('docs/screenshots', { recursive: true });
+  await expect(owner.getByRole('heading', { name: 'Your projects.' })).toBeVisible();
   await owner.screenshot({
     path: 'docs/screenshots/workspace-desktop.png',
     fullPage: true,

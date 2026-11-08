@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { db, projects, memberships, projectFiles } from '@flowstate/database';
+import { db, projects, memberships, projectFiles, projectFileVersions } from '@flowstate/database';
 import { canWrite } from '@flowstate/contracts';
 import { currentUser } from '@/lib/auth';
 import {
@@ -63,7 +63,12 @@ export async function POST(request: Request, context: { params: Promise<{ projec
         .select({ bytes: sql<number>`coalesce(sum(${projectFiles.size}), 0)::int` })
         .from(projectFiles)
         .where(eq(projectFiles.projectId, projectId));
-      if (usage.bytes + body.length > PROJECT_FILE_QUOTA)
+      const [history] = await tx
+        .select({ bytes: sql<number>`coalesce(sum(${projectFileVersions.size}),0)::int` })
+        .from(projectFileVersions)
+        .innerJoin(projectFiles, eq(projectFileVersions.fileId, projectFiles.id))
+        .where(eq(projectFiles.projectId, projectId));
+      if (usage.bytes + history.bytes + body.length > PROJECT_FILE_QUOTA)
         throw new FileProblem('This project has reached its 100 MiB file limit.', 413);
       await putFile(provider, key, body, metadata.mimeType);
       try {

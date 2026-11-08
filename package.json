@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "setup": "node scripts/selfhost.mjs setup",
+    "setup:office": "node scripts/selfhost.mjs setup-office",
     "selfhost": "node scripts/selfhost.mjs start",
     "selfhost:stop": "node scripts/selfhost.mjs stop",
     "selfhost:logs": "node scripts/selfhost.mjs logs",
@@ -28,6 +29,8 @@
     "db:local": "tsx scripts/local-postgres.ts",
     "test:e2e": "playwright test",
     "test:code": "playwright test --config playwright.code.config.ts",
+    "test:office": "playwright test --config playwright.office.config.ts",
+    "test:office:live": "playwright test --config playwright.office-live.config.ts",
     "test:docker": "vitest run --config vitest.docker.config.ts"
   },
   "dependencies": {
@@ -42,6 +45,7 @@
     "@codemirror/view": "^6.43.15",
     "@hocuspocus/provider": "^4.8.0",
     "@hocuspocus/server": "^4.8.0",
+    "@sentry/nextjs": "11.11.0",
     "@tiptap/extension-collaboration": "^3.33.0",
     "@tiptap/extension-collaboration-caret": "^3.33.0",
     "@tiptap/react": "^3.33.0",

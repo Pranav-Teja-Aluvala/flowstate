@@ -131,6 +131,8 @@ UI components live in the web app until a second consumer justifies a shared UI 
 
 ## Self-host FLOWSTATE
 
+Version 2 work is on the `version-2` branch. See the [execution record](docs/version-2.md), [optional office editing](docs/office-editing.md) and [monitoring setup](docs/monitoring.md) for implemented paths and verification limits. The creative-studio redesign and clean release history follow functional verification.
+
 The current major-project milestone adds a [project file library](docs/project-files.md). The owner selected a [₹0 demo budget](docs/hosting-costs.md); office editing and hosted activation remain pending.
 
 Install Node.js 24 and Docker Engine with Compose v2, download the source, then run from the project folder:

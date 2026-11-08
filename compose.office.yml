@@ -1,0 +1,33 @@
+services:
+  web:
+    environment:
+      OFFICE_JWT_SECRET: ${OFFICE_JWT_SECRET:?Set the office secret in .env.selfhost}
+      OFFICE_PUBLIC_URL: ${OFFICE_PUBLIC_URL:-http://127.0.0.1:8082}
+      OFFICE_INTERNAL_URL: http://office
+      OFFICE_APP_URL: http://web:3000
+    depends_on:
+      office:
+        condition: service_healthy
+  office:
+    image: onlyoffice/documentserver:10.0.0
+    restart: unless-stopped
+    shm_size: 1gb
+    environment:
+      JWT_ENABLED: 'true'
+      JWT_SECRET: ${OFFICE_JWT_SECRET:?Set the office secret in .env.selfhost}
+      JWT_HEADER: Authorization
+      ALLOW_PRIVATE_IP_ADDRESS: 'true'
+    ports:
+      - '127.0.0.1:8082:80'
+    volumes:
+      - office-data:/var/www/onlyoffice/Data
+      - office-logs:/var/log/onlyoffice
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost/healthcheck']
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
+volumes:
+  office-data:
+  office-logs:

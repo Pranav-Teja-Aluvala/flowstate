@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 function port(value, fallback) {
@@ -25,6 +25,13 @@ export function parseConfig(text) {
   );
 }
 export function validateConfig(config) {
+  if (
+    config.OFFICE_ENABLED === 'true' &&
+    (config.FLOWSTATE_MODE !== 'local' || (config.OFFICE_JWT_SECRET || '').length < 32)
+  )
+    throw new Error(
+      'The bundled office profile needs local mode and an OFFICE_JWT_SECRET of at least 32 characters.',
+    );
   if (!['local', 'public'].includes(config.FLOWSTATE_MODE))
     throw new Error('Set FLOWSTATE_MODE to local or public in .env.selfhost.');
   if (!/^[a-z0-9][a-z0-9_-]{0,50}$/.test(config.COMPOSE_PROJECT_NAME || ''))
@@ -118,6 +125,35 @@ export function composeArguments(config) {
     '.env.selfhost',
     '-f',
     'docker-compose.yml',
+    ...(config.OFFICE_ENABLED === 'true' ? ['-f', 'compose.office.yml'] : []),
     ...(config.FLOWSTATE_MODE === 'public' ? ['-f', 'compose.public.yml'] : []),
   ];
+}
+export function enableLocalOffice({ directory } = {}) {
+  const result = prepareSelfhost({ directory });
+  if (result.config.FLOWSTATE_MODE !== 'local')
+    throw new Error(
+      'The bundled office profile is local-only. Configure a separate HTTPS office service for a public instance.',
+    );
+  if (result.config.OFFICE_ENABLED === 'true') {
+    if ((result.config.OFFICE_JWT_SECRET || '').length < 32)
+      throw new Error('OFFICE_JWT_SECRET must contain at least 32 characters.');
+    return { ...result, created: false };
+  }
+  const secret = result.config.OFFICE_JWT_SECRET || randomBytes(32).toString('hex');
+  if (secret.length < 32) throw new Error('OFFICE_JWT_SECRET must contain at least 32 characters.');
+  const additions = {
+    OFFICE_ENABLED: 'true',
+    OFFICE_PUBLIC_URL: result.config.OFFICE_PUBLIC_URL || 'http://127.0.0.1:8082',
+    OFFICE_JWT_SECRET: secret,
+  };
+  appendFileSync(
+    result.filename,
+    '\n# Optional local office editor\n' +
+      Object.entries(additions)
+        .map(([key, value]) => `${key}=${value}`)
+        .join('\n') +
+      '\n',
+  );
+  return { ...result, config: { ...result.config, ...additions }, created: true };
 }

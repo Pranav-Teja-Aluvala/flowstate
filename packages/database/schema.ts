@@ -11,6 +11,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 export const role = pgEnum('role', ['owner', 'admin', 'editor', 'viewer']);
+export const taskPriority = pgEnum('task_priority', ['low', 'normal', 'high', 'urgent']);
 const dates = { createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull() };
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -55,6 +56,17 @@ export const memberships = pgTable(
   },
   (t) => [primaryKey({ columns: [t.workspaceId, t.userId] })],
 );
+export const workspaceNotes = pgTable('workspace_notes', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id')
+    .notNull()
+    .references(() => workspaces.id, { onDelete: 'cascade' }),
+  authorId: uuid('author_id')
+    .notNull()
+    .references(() => users.id),
+  body: text('body').notNull(),
+  ...dates,
+});
 export const projects = pgTable('projects', {
   id: uuid('id').defaultRandom().primaryKey(),
   workspaceId: uuid('workspace_id')
@@ -117,6 +129,7 @@ export const tasks = pgTable('tasks', {
     .references(() => columns.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
   description: text('description').notNull().default(''),
+  priority: taskPriority('priority').notNull().default('normal'),
   assigneeId: uuid('assignee_id').references(() => users.id, { onDelete: 'set null' }),
   sortKey: integer('sort_key').notNull(),
   version: integer('version').notNull().default(1),
@@ -222,8 +235,27 @@ export const projectFiles = pgTable('project_files', {
   size: integer('size').notNull(),
   storageKey: text('storage_key').notNull().unique(),
   storageProvider: text('storage_provider').notNull(),
+  version: integer('version').notNull().default(1),
+  officeKey: uuid('office_key').notNull().defaultRandom(),
+  officeSavedKey: uuid('office_saved_key'),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   createdBy: uuid('created_by')
     .notNull()
     .references(() => users.id),
   ...dates,
 });
+export const projectFileVersions = pgTable(
+  'project_file_versions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    fileId: uuid('file_id')
+      .notNull()
+      .references(() => projectFiles.id, { onDelete: 'cascade' }),
+    version: integer('version').notNull(),
+    size: integer('size').notNull(),
+    storageKey: text('storage_key').notNull().unique(),
+    storageProvider: text('storage_provider').notNull(),
+    ...dates,
+  },
+  (table) => [uniqueIndex('project_file_version_number').on(table.fileId, table.version)],
+);

@@ -6,9 +6,25 @@ import {
   prepareSelfhost,
   composeArguments,
   validateConfig,
+  enableLocalOffice,
 } from '../../scripts/lib/selfhost-config.mjs';
 
 describe('self-hosted instance setup', () => {
+  it('enables the local office profile without replacing instance credentials', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'flowstate-office-'));
+    const before = prepareSelfhost({ directory });
+    const enabled = enableLocalOffice({ directory });
+    expect(enabled.config.POSTGRES_PASSWORD).toBe(before.config.POSTGRES_PASSWORD);
+    expect(enabled.config.COLLABORATION_SECRET).toBe(before.config.COLLABORATION_SECRET);
+    expect(enabled.config.OFFICE_JWT_SECRET.length).toBeGreaterThanOrEqual(32);
+    expect(composeArguments(enabled.config)).toContain('compose.office.yml');
+    const original = readFileSync(enabled.filename, 'utf8');
+    expect(enableLocalOffice({ directory }).created).toBe(false);
+    expect(readFileSync(enabled.filename, 'utf8')).toBe(original);
+    const publicDirectory = mkdtempSync(join(tmpdir(), 'flowstate-office-public-'));
+    prepareSelfhost({ directory: publicDirectory, domain: 'work.example.com' });
+    expect(() => enableLocalOffice({ directory: publicDirectory })).toThrow('local-only');
+  });
   it('generates independent credentials without cloud or GitHub accounts', () => {
     const directory = mkdtempSync(join(tmpdir(), 'flowstate-setup-'));
     const first = prepareSelfhost({ directory });

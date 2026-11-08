@@ -36,6 +36,20 @@
       "when": 1794169114438,
       "tag": "0004_strong_praxagora",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794170829385,
+      "tag": "0005_nifty_alice",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794171261316,
+      "tag": "0006_shocking_quicksilver",
+      "breakpoints": true
     }
   ]
 }

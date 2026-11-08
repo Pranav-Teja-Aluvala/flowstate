@@ -1,5 +1,11 @@
 # Verification record
 
+## Version 2 functional work — 09 November 2026
+
+On the `version-2` branch, 41 unit/integration tests passed, along with five core browser flows, the GitHub-fixture code browser flow and the Office transport browser contract. Type checking, lint, formatting, the production build and production dependency audit passed (zero production findings). Migrations 0005 and 0006 were applied locally without resetting existing data.
+
+Runtime-import tests use a real collaboration process and PostgreSQL; GitHub permission responses are fixtures. The Office transport suite is explicitly a fixture, not an Office engine. Separate CI jobs now attempt actual Docker isolation/CLI/browser operation and actual Office-engine format opening/two-user Word save-back. Those new live jobs are not yet verified. The previous published commit's application CI succeeded; its Docker CI exposed read-only archive-upload and output-framing bugs, now addressed in source pending re-verification.
+
 ## Project file library — 09 November 2026
 
 30 unit/integration tests and all four core browser flows passed. The new browser flow covers original-byte download, viewer read access, blocked viewer/outsider writes, blocked cross-origin upload, invalid PDF signatures, project quota enforcement and immediate membership-revocation denial. Type checking, linting, formatting and the production build passed. The Supabase adapter has mocked HTTP coverage, not live provider verification. Migration 0004 was applied to the local PostgreSQL instance. No Docker, WSL, paid hosting or public runner was activated; Docker setup was deferred at the owner's request.

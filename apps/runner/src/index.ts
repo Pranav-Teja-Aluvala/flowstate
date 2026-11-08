@@ -3,14 +3,15 @@ import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import Docker from 'dockerode';
 import { WebSocketServer, WebSocket } from 'ws';
-import { pack } from 'tar-stream';
-import { Readable } from 'node:stream';
+import { Readable, PassThrough } from 'node:stream';
 import { z } from 'zod';
 import { authorizeCodeSession, GitHubError } from '@flowstate/github';
 import { db, activityEvents, projects, pool } from '@flowstate/database';
 import { eq } from 'drizzle-orm';
 import { verifyRunnerTicket, containerConfiguration, RunnerError } from './policy';
-import { repositorySnapshot, type SnapshotFile } from './snapshot';
+import { repositorySnapshot } from './snapshot';
+import { putFiles } from './files';
+import { collectRuntimeChanges, contentHash } from './changes';
 const secret = process.env.COLLABORATION_SECRET || '';
 if (secret.length < 32)
   throw new RunnerError('Configure COLLABORATION_SECRET before starting the runner.');
@@ -33,6 +34,9 @@ type Environment = {
   created: number;
   lastUsed: number;
   syncing: boolean;
+  baseline: Map<string, string>;
+  checkingControl: boolean;
+  lastPublishRequest: string;
 };
 const environments = new Map<string, Promise<Environment>>();
 const send = (ws: WebSocket, message: unknown) => {
@@ -42,22 +46,38 @@ const send = (ws: WebSocket, message: unknown) => {
   }
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(message));
 };
-async function putFiles(container: Docker.Container, files: SnapshotFile[]) {
-  const archive = pack();
-  for (const file of files)
-    archive.entry(
-      {
-        name: file.path,
-        size: file.content.length,
-        mode: file.mode,
-        uid: 1000,
-        gid: 1000,
-        type: 'file',
-      },
-      file.content,
-    );
-  archive.finalize();
-  await container.putArchive(Readable.from(archive), { path: '/workspace' });
+async function containerCommand(
+  container: Docker.Container,
+  command: string[],
+  allowFailure = false,
+) {
+  const exec = await container.exec({
+    Cmd: command,
+    User: '1000:1000',
+    WorkingDir: '/workspace',
+    AttachStdout: true,
+    AttachStderr: false,
+    Tty: false,
+  });
+  const stream = await exec.start({ hijack: true, stdin: false, Tty: false });
+  const outputStream = new PassThrough();
+  docker.modem.demuxStream(stream, outputStream, new PassThrough());
+  let output = '';
+  await new Promise<void>((resolve, reject) => {
+    outputStream.on('data', (bytes: Buffer) => {
+      if (output.length + bytes.length > 8192) {
+        stream.destroy();
+        reject(new RunnerError('Runner command response exceeded its limit.'));
+        return;
+      }
+      output += bytes.toString('utf8');
+    });
+    stream.on('end', resolve);
+    stream.on('error', reject);
+  });
+  if ((await exec.inspect()).ExitCode !== 0 && !allowFailure)
+    throw new RunnerError('Unable to prepare the local Git workspace.');
+  return output;
 }
 async function createEnvironment(access: Access): Promise<Environment> {
   const files = await repositorySnapshot(access.userId, access.sessionId);
@@ -67,6 +87,14 @@ async function createEnvironment(access: Access): Promise<Environment> {
   try {
     await container.start();
     await putFiles(container, files);
+    for (const command of [
+      ['git', 'init', '--quiet', '--initial-branch=flowstate-local'],
+      ['git', 'config', 'user.name', 'FLOWSTATE workspace'],
+      ['git', 'config', 'user.email', 'workspace@flowstate.local'],
+      ['git', 'add', '--all'],
+      ['git', 'commit', '--quiet', '--allow-empty', '-m', 'Start shared workspace'],
+    ])
+      await containerCommand(container, command);
     const exec = await container.exec({
       Cmd: ['/bin/sh'],
       User: '1000:1000',
@@ -77,7 +105,7 @@ async function createEnvironment(access: Access): Promise<Environment> {
       Tty: true,
       Env: ['TERM=xterm-256color', 'HOME=/tmp'],
     });
-    const stream = await exec.start({ hijack: true, stdin: true });
+    const stream = await exec.start({ hijack: true, stdin: true, Tty: true });
     const environment: Environment = {
       container,
       exec,
@@ -87,6 +115,9 @@ async function createEnvironment(access: Access): Promise<Environment> {
       created: Date.now(),
       lastUsed: Date.now(),
       syncing: false,
+      baseline: new Map(files.map((file) => [file.path, contentHash(file.content)])),
+      checkingControl: false,
+      lastPublishRequest: '',
     };
     stream.on('data', (bytes: Buffer) => {
       const data = bytes.toString('utf8');
@@ -214,13 +245,32 @@ wsServer.on('connection', (ws) => {
           await env.exec.resize({ w: message.cols, h: message.rows });
         else if (message.type === 'input' && access.role !== 'viewer' && message.data)
           env.stream.write(message.data);
-        else if (message.type === 'sync' && access.role !== 'viewer' && !env.syncing) {
+        else if (message.type === 'review' && access.role !== 'viewer' && !env.syncing) {
           env.syncing = true;
           try {
-            await putFiles(
-              env.container,
-              await repositorySnapshot(access.userId, access.sessionId),
+            const changes = await collectRuntimeChanges(
+              (await env.container.getArchive({ path: '/workspace' })) as Readable,
+              env.baseline,
             );
+            send(ws, { type: 'changes', changes });
+          } finally {
+            env.syncing = false;
+          }
+        } else if (message.type === 'sync' && access.role !== 'viewer' && !env.syncing) {
+          env.syncing = true;
+          try {
+            const files = await repositorySnapshot(access.userId, access.sessionId);
+            const current = new Map(files.map((file) => [file.path, contentHash(file.content)]));
+            const changes = await collectRuntimeChanges(
+              (await env.container.getArchive({ path: '/workspace' })) as Readable,
+              env.baseline,
+            );
+            if (changes.some((change) => contentHash(change.content) !== current.get(change.path)))
+              throw new RunnerError(
+                'The terminal has unsaved edits. Review and import them before syncing shared files.',
+              );
+            await putFiles(env.container, files);
+            env.baseline = current;
             for (const client of env.clients.keys())
               send(client, {
                 type: 'output',
@@ -233,13 +283,13 @@ wsServer.on('connection', (ws) => {
           await removeEnvironment(access.sessionId);
       } catch (cause) {
         send(ws, {
-          type: 'error',
+          type: cause instanceof RunnerError && access && env ? 'operation-error' : 'error',
           message:
             cause instanceof RunnerError || cause instanceof GitHubError
               ? cause.message
               : 'Terminal operation failed.',
         });
-        ws.close(4403, 'Operation denied');
+        if (!(cause instanceof RunnerError && access && env)) ws.close(4403, 'Operation denied');
       } finally {
         queued--;
       }
@@ -269,6 +319,34 @@ const timer = setInterval(() => {
           } catch {
             client.close(4403, 'Access revoked');
           }
+        if (
+          !env.checkingControl &&
+          [...env.clients.values()].some((access) => access.role !== 'viewer')
+        ) {
+          env.checkingControl = true;
+          try {
+            const value = await containerCommand(
+              env.container,
+              ['cat', '/tmp/flowstate-publish.json'],
+              true,
+            );
+            if (value) {
+              const request = z
+                .object({ id: z.uuid(), title: z.string().trim().min(1).max(150) })
+                .parse(JSON.parse(value));
+              if (request.id !== env.lastPublishRequest) {
+                env.lastPublishRequest = request.id;
+                for (const [client, access] of env.clients)
+                  if (access.role !== 'viewer')
+                    send(client, { type: 'publish-review', ...request });
+              }
+            }
+          } catch {
+            /* An absent or invalid request never triggers a publish. */
+          } finally {
+            env.checkingControl = false;
+          }
+        }
       })
       .catch(() => {});
 }, 2000);

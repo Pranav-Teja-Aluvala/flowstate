@@ -805,6 +805,71 @@ small {
 .project-file-list a {
   display: inline;
 }
+.project-file-list .button {
+  display: inline-flex;
+  margin-left: 20px;
+}
+.office-main {
+  max-width: none;
+}
+.office-frame {
+  height: 72vh;
+  min-height: 500px;
+  background: #f4f4f4;
+  border: 1px solid var(--line);
+}
+.office-frame > div {
+  height: 100%;
+}
+.workspace-updates {
+  margin-top: 32px;
+}
+.team-notes {
+  list-style: none;
+  padding: 0;
+}
+.team-notes li {
+  border-bottom: 1px solid var(--line);
+  padding: 16px 0;
+}
+.team-notes small {
+  color: var(--muted);
+}
+.note-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin-bottom: 8px;
+}
+.task-priority {
+  display: inline-block;
+  text-transform: uppercase;
+  font-size: 10px;
+  padding: 4px 7px;
+  border-radius: 4px;
+  margin: 5px 0;
+}
+.runtime-review {
+  margin: 20px 0;
+}
+.runtime-review pre {
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 16px;
+}
+.priority-urgent {
+  color: #873d31;
+  background: #fbede8;
+}
+.priority-high {
+  color: #775621;
+  background: #f5ecd8;
+}
+.priority-low {
+  color: #47615b;
+  background: #e6eeeb;
+}
 .settings-card.form > .button {
   justify-self: start;
 }

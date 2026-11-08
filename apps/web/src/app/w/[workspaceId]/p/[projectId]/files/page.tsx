@@ -70,6 +70,14 @@ export default async function ProjectFiles({
                     {file.name}
                   </a>
                   <span className="muted"> · {Math.ceil(file.size / 1024)} KiB</span>
+                  {/\.(pdf|docx|xlsx|pptx)$/i.test(file.name) && (
+                    <Link
+                      className="button secondary"
+                      href={`/w/${workspaceId}/p/${projectId}/files/${file.id}`}
+                    >
+                      Open editor
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

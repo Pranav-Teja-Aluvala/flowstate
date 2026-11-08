@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
-import { Readable } from 'node:stream';
+import { PassThrough } from 'node:stream';
 import Docker from 'dockerode';
-import { pack } from 'tar-stream';
+import { putFiles } from '../../apps/runner/src/files';
 import { containerConfiguration } from '../../apps/runner/src/policy';
 const docker = new Docker({
   socketPath:
@@ -17,12 +17,14 @@ async function run(command: string[]) {
     WorkingDir: '/workspace',
     AttachStdout: true,
     AttachStderr: true,
-    Tty: true,
+    Tty: false,
   });
-  const stream = await exec.start({ hijack: true, stdin: false });
+  const stream = await exec.start({ hijack: true, stdin: false, Tty: false });
+  const output = new PassThrough();
+  docker.modem.demuxStream(stream, output, output);
   let result = '';
   await new Promise<void>((resolve, reject) => {
-    stream.on('data', (chunk) => {
+    output.on('data', (chunk) => {
       result += chunk.toString();
     });
     stream.on('end', resolve);
@@ -44,16 +46,28 @@ afterAll(async () => {
   if (container) await container.remove({ force: true }).catch(() => {});
 });
 it('executes a source snapshot as non-root and retains writable workspace files', async () => {
-  const archive = pack();
   const source =
     'require("node:fs").writeFileSync("/workspace/result.txt","sandbox-ok");console.log(process.getuid())';
-  archive.entry({ name: 'program.cjs', uid: 1000, gid: 1000, mode: 0o644 }, source);
-  archive.finalize();
-  await container.putArchive(Readable.from(archive), { path: '/workspace' });
+  await putFiles(container, [{ path: 'program.cjs', content: Buffer.from(source), mode: 0o644 }]);
   expect(await run(['node', 'program.cjs'])).toContain('1000');
   expect(
     await run(['node', '-e', 'console.log(require("node:fs").readFileSync("result.txt","utf8"))']),
   ).toContain('sandbox-ok');
+});
+it('queues CLI publishing for explicit browser review without exposing GitHub credentials', async () => {
+  expect(await run(['flowstate', 'push', 'Update the team prototype'])).toContain(
+    'Nothing has been pushed yet.',
+  );
+  const request = JSON.parse((await run(['cat', '/tmp/flowstate-publish.json'])).trim());
+  expect(request.title).toBe('Update the team prototype');
+  expect(request.id).toMatch(/^[a-f0-9-]{36}$/);
+  expect(
+    await run([
+      'node',
+      '-e',
+      'console.log(Object.keys(process.env).filter(key=>/GITHUB|TOKEN|SECRET/.test(key)).join(","))',
+    ]),
+  ).not.toMatch(/GITHUB|TOKEN|SECRET/);
 });
 it('enforces network, root-filesystem and Docker-socket isolation', async () => {
   const info = await container.inspect();
@@ -67,7 +81,7 @@ it('enforces network, root-filesystem and Docker-socket isolation', async () => 
       '-e',
       'const fs=require("node:fs");console.log(fs.existsSync("/var/run/docker.sock"));try{fs.writeFileSync("/etc/flowstate-test","x");console.log("WRITABLE")}catch{console.log("BLOCKED")}',
     ]),
-  ).toContain('false\r\nBLOCKED');
+  ).toMatch(/false\r?\nBLOCKED/);
   expect(
     await run([
       'node',

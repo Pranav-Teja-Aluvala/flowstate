@@ -33,9 +33,12 @@ services:
       args:
         NEXT_PUBLIC_COLLABORATION_URL: ${NEXT_PUBLIC_COLLABORATION_URL:-ws://localhost:1234}
         NEXT_PUBLIC_RUNNER_URL: ${NEXT_PUBLIC_RUNNER_URL:-ws://localhost:1236}
+        NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
     environment:
       DATABASE_URL: postgresql://flowstate:${POSTGRES_PASSWORD}@postgres:5432/flowstate
       COLLABORATION_SECRET: ${COLLABORATION_SECRET:?Set a random secret of at least 32 characters}
+      COLLABORATION_INTERNAL_URL: ws://collaboration:1234
+      SENTRY_DSN: ${SENTRY_DSN:-}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       APP_URL: ${APP_URL:-http://localhost:3000}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
