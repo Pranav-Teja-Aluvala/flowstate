@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { test, expect } from '@playwright/test';
 test('board ordering persists and two authorized users edit one rich-text document', async ({
   browser,
@@ -68,6 +69,10 @@ test('board ordering persists and two authorized users edit one rich-text docume
       .getByRole('region', { name: 'In progress column' })
       .getByText('Set the creative direction', { exact: true }),
   ).toBeVisible();
+  expect(
+    (await new AxeBuilder({ page: owner }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())
+      .violations,
+  ).toEqual([]);
   await owner.screenshot({
     path: 'docs/screenshots/kanban-desktop.png',
     fullPage: true,
@@ -138,11 +143,21 @@ test('board ordering persists and two authorized users edit one rich-text docume
   await a.pressSequentially('Bring everyone along for the launch');
   await expect(b.locator('li')).toHaveCount(3);
   await expect(owner.getByTestId('save-status')).toHaveText('Saved to database');
+  expect(
+    (await new AxeBuilder({ page: owner }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())
+      .violations,
+  ).toEqual([]);
   await owner.screenshot({
     path: 'docs/screenshots/editor-desktop.png',
     fullPage: true,
     caret: 'initial',
   });
+  await owner.emulateMedia({ media: 'print' });
+  await expect(owner.locator('.sidebar')).toBeHidden();
+  await expect(a).toBeVisible();
+  const pdf = await owner.pdf({ path: '.local/native-document.pdf', preferCSSPageSize: true });
+  expect(pdf.subarray(0, 5).toString()).toBe('%PDF-');
+  await owner.emulateMedia({ media: 'screen' });
   await owner.goto(`${workspaceUrl}/settings`);
   await owner.getByRole('combobox', { name: 'Role for Sam Rivera' }).selectOption('viewer');
   await owner.getByRole('button', { name: 'Update', exact: true }).click();

@@ -20,8 +20,9 @@ PostgreSQL helper keeps its data in `.local/postgres`; stopping it preserves dat
 7. Open [localhost:3000](http://localhost:3000), create an email/password account,
    create a workspace and invite a teammate using a generated invitation link.
 
-Core projects, boards and native collaborative documents need no GitHub credentials.
-GitHub access and terminal execution have separate [GitHub](github-setup.md) and
+Core projects, boards and native collaborative documents need no GitHub or Office
+credentials. GitHub access, Office-file editing and terminal execution have
+separate [GitHub](github-setup.md), [Office](office-editing.md) and
 [runner](code-workspace.md) setup instructions. Docker/WSL installation is not
 performed by these native development commands.
 
@@ -30,3 +31,9 @@ commands in the README. PostgreSQL must be running. Tests use synthetic accounts
 and remove the temporary workspaces they explicitly own; they do not reset the
 database. Local browser tests can also leave synthetic account records from the
 full registration flows.
+
+For the public-page audit, run `npm run build`, start the production server with
+`npm run start -- --port 3004`, then run `npm run audit:site`. Reports are saved
+under the ignored `.local/audits` directory. Use `AUDIT_URL` to select another
+production origin. Set `PRIVACY_CONTACT_EMAIL` in the web environment to publish
+the instance's privacy contact before accepting public users.

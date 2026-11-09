@@ -21,6 +21,7 @@ import {
 } from '../../packages/database';
 import { encryptToken, authorizeCodeSession } from '../../packages/github';
 import { createCollaborationServer } from '../../apps/collaboration/src/server';
+import { importRuntimeBuffers } from '../../packages/github/runtime';
 const secret = randomBytes(32).toString('hex');
 const hashes = new Map<string, string>();
 const clients: {
@@ -212,6 +213,46 @@ describe('shared private code rooms with a mocked GitHub permission API', () => 
     read.document.getText('code').insert(0, 'FORBIDDEN');
     await new Promise((resolve) => setTimeout(resolve, 300));
     expect(write.document.getText('code').toString()).not.toContain('FORBIDDEN');
+  });
+  it('imports reviewed terminal edits live, persists them and rejects stale baselines or viewer imports', async () => {
+    const client = connect(owner);
+    await until(() => client.provider.isSynced);
+    const before = client.document.getText('code').toString();
+    const content = before + '// imported runtime edit\n';
+    const input = {
+      sessionId: codeSessionId,
+      sessionHash: hashes.get(owner)!,
+      changes: [
+        {
+          path: 'src/index.ts',
+          baselineHash: createHash('sha256').update(before).digest('hex'),
+          content: content.replace(/\n/g, '\r\n'),
+        },
+      ],
+      collaborationURL: 'ws://127.0.0.1:1237',
+      origin: 'http://localhost:3000',
+      secret,
+    };
+    expect(await importRuntimeBuffers(input)).toBe(1);
+    await until(() => client.document.getText('code').toString() === content);
+    await until(async () => {
+      const saved = await db.query.codeStates.findFirst({ where: eq(codeStates.fileId, fileId) });
+      const doc = new Y.Doc();
+      if (saved) Y.applyUpdate(doc, new Uint8Array(saved.yjsState));
+      const matches = doc.getText('code').toString() === content;
+      doc.destroy();
+      return matches;
+    });
+    await expect(
+      importRuntimeBuffers({
+        ...input,
+        changes: [{ ...input.changes[0], content: 'stale replacement' }],
+      }),
+    ).rejects.toThrow('Shared code changed');
+    await expect(
+      importRuntimeBuffers({ ...input, sessionHash: hashes.get(viewer)! }),
+    ).rejects.toThrow('permission');
+    expect(client.document.getText('code').toString()).toBe(content);
   });
   it('rejects non-members even when their GitHub identity has repository access', async () => {
     const client = connect(outsider);

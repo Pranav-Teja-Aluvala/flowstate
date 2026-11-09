@@ -35,6 +35,7 @@ import { ActionForm, Dialog } from '@/components/forms';
 import { Shell } from '@/components/shell';
 import { FileBrowser, SharedCodeEditor } from '@/components/code-workspace';
 import { SharedTerminal } from '@/components/terminal';
+import { CodeReviewPanel } from '@/components/code-review';
 
 export default async function ProjectCode({
   params,
@@ -232,6 +233,19 @@ export default async function ProjectCode({
                 <input type="hidden" name="projectId" value={projectId} />
                 <input type="hidden" name="installationId" value={installation} />
                 <label>
+                  GitHub repository URL (optional)
+                  <input
+                    name="repositoryURL"
+                    type="url"
+                    placeholder="https://github.com/team/project"
+                    maxLength={300}
+                  />
+                </label>
+                <p className="muted">
+                  Paste a repository URL or choose below. The repository must be allowed by the
+                  selected GitHub installation and your account.
+                </p>
+                <label>
                   Repository
                   <select name="repositoryId">
                     {availableRepos
@@ -364,6 +378,7 @@ export default async function ProjectCode({
                   sessionId={session.id}
                   editable={canWrite(workspace.role) && push}
                 />
+                <CodeReviewPanel sessionId={session.id} fileId={file?.id} role={workspace.role} />
                 {canWrite(workspace.role) && push && (
                   <section className="settings-card publish-card">
                     <h2>Review and publish your saved changes</h2>

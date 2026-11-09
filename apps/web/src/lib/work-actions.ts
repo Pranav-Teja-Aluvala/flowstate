@@ -11,6 +11,7 @@ import {
   documents,
   memberships,
   activityEvents,
+  workspaceNotes,
 } from '@flowstate/database';
 import { nameSchema } from '@flowstate/contracts';
 import { requireMembership } from './auth';
@@ -33,11 +34,19 @@ export async function createBoard(_state: ActionState, form: FormData): Promise<
   let destination: string;
   try {
     const projectId = uuid(form, 'projectId');
-    const { project } = await projectAccess(projectId);
-    const [board] = await db
-      .insert(boards)
-      .values({ projectId, name: nameSchema.parse(value(form, 'name')) })
-      .returning();
+    const { project, user } = await projectAccess(projectId);
+    const name = nameSchema.parse(value(form, 'name'));
+    const board = await db.transaction(async (tx) => {
+      const [created] = await tx.insert(boards).values({ projectId, name }).returning();
+      await tx.insert(activityEvents).values({
+        workspaceId: project.workspaceId,
+        actorId: user.id,
+        action: 'board.created',
+        objectType: 'board',
+        objectId: created.id,
+      });
+      return created;
+    });
     destination = `/w/${project.workspaceId}/p/${projectId}?board=${board.id}`;
   } catch (error) {
     return failure(error);
@@ -50,7 +59,7 @@ export async function createColumn(_state: ActionState, form: FormData): Promise
     const boardId = uuid(form, 'boardId');
     const board = await db.query.boards.findFirst({ where: eq(boards.id, boardId) });
     if (!board) throw new Error('Board not found.');
-    await projectAccess(board.projectId);
+    const { project, user } = await projectAccess(board.projectId);
     const title = nameSchema.parse(value(form, 'title'));
     await db.transaction(async (tx) => {
       await tx.select().from(boards).where(eq(boards.id, boardId)).for('update');
@@ -59,6 +68,13 @@ export async function createColumn(_state: ActionState, form: FormData): Promise
         boardId,
         title,
         sortKey: existing.length ? Math.max(...existing.map((c) => c.sortKey)) + 1 : 0,
+      });
+      await tx.insert(activityEvents).values({
+        workspaceId: project.workspaceId,
+        actorId: user.id,
+        action: 'column.created',
+        objectType: 'board',
+        objectId: boardId,
       });
     });
   } catch (error) {
@@ -77,6 +93,9 @@ export async function saveTask(_state: ActionState, form: FormData): Promise<Act
     const { project, user } = await projectAccess(board.projectId);
     const title = z.string().trim().min(1).max(200).parse(value(form, 'title'));
     const description = z.string().max(10000).parse(value(form, 'description'));
+    const priority = z
+      .enum(['low', 'normal', 'high', 'urgent'])
+      .parse(value(form, 'priority') || 'normal');
     const assigneeId = value(form, 'assigneeId') ? uuid(form, 'assigneeId') : null;
     if (
       assigneeId &&
@@ -106,6 +125,7 @@ export async function saveTask(_state: ActionState, form: FormData): Promise<Act
           .set({
             title,
             description,
+            priority,
             assigneeId,
             version: sql`${tasks.version} + 1`,
             updatedAt: new Date(),
@@ -123,7 +143,7 @@ export async function saveTask(_state: ActionState, form: FormData): Promise<Act
         const existing = await tx.select().from(tasks).where(eq(tasks.columnId, columnId));
         const [created] = await tx
           .insert(tasks)
-          .values({ title, description, assigneeId, columnId, sortKey: existing.length })
+          .values({ title, description, priority, assigneeId, columnId, sortKey: existing.length })
           .returning();
         taskId = created.id;
       }
@@ -140,6 +160,79 @@ export async function saveTask(_state: ActionState, form: FormData): Promise<Act
   }
   revalidatePath('/');
   return { success: 'Task saved.' };
+}
+export async function deleteTask(_state: ActionState, form: FormData): Promise<ActionState> {
+  try {
+    const taskId = uuid(form, 'taskId');
+    const version = z.coerce.number().int().positive().parse(value(form, 'version'));
+    const task = await db.query.tasks.findFirst({ where: eq(tasks.id, taskId) });
+    if (!task) throw new Error('Task not found.');
+    const column = await db.query.columns.findFirst({ where: eq(columns.id, task.columnId) });
+    const board =
+      column && (await db.query.boards.findFirst({ where: eq(boards.id, column.boardId) }));
+    if (!board) throw new Error('Board not found.');
+    const { project, user } = await projectAccess(board.projectId);
+    await db.transaction(async (tx) => {
+      await tx.select().from(boards).where(eq(boards.id, board.id)).for('update');
+      const [removed] = await tx
+        .delete(tasks)
+        .where(
+          and(eq(tasks.id, taskId), eq(tasks.version, version), eq(tasks.columnId, task.columnId)),
+        )
+        .returning();
+      if (!removed) throw new Error('This task changed. Refresh and try again.');
+      const remaining = await tx
+        .select()
+        .from(tasks)
+        .where(eq(tasks.columnId, task.columnId))
+        .orderBy(asc(tasks.sortKey));
+      for (const [index, item] of remaining.entries())
+        await tx
+          .update(tasks)
+          .set({ sortKey: index, version: sql`${tasks.version} + 1` })
+          .where(eq(tasks.id, item.id));
+      await tx.insert(activityEvents).values({
+        workspaceId: project.workspaceId,
+        actorId: user.id,
+        action: 'task.deleted',
+        objectType: 'task',
+        objectId: taskId,
+      });
+    });
+  } catch (error) {
+    return failure(error);
+  }
+  revalidatePath('/');
+  return { success: 'Task deleted.' };
+}
+export async function postTeamNote(_state: ActionState, form: FormData): Promise<ActionState> {
+  try {
+    const workspaceId = uuid(form, 'workspaceId');
+    const { user } = await requireMembership(workspaceId, 'write');
+    const body = z
+      .string()
+      .trim()
+      .min(1, 'Write a note first.')
+      .max(2000, 'Keep notes within 2,000 characters.')
+      .parse(value(form, 'body'));
+    await db.transaction(async (tx) => {
+      const [note] = await tx
+        .insert(workspaceNotes)
+        .values({ workspaceId, authorId: user.id, body })
+        .returning();
+      await tx.insert(activityEvents).values({
+        workspaceId,
+        actorId: user.id,
+        action: 'note.shared',
+        objectType: 'note',
+        objectId: note.id,
+      });
+    });
+  } catch (error) {
+    return failure(error);
+  }
+  revalidatePath('/');
+  return { success: 'Note shared with your team.' };
 }
 export async function moveTask(input: {
   taskId: string;
@@ -213,10 +306,21 @@ export async function moveTask(input: {
 export async function createDocument(_state: ActionState, form: FormData): Promise<ActionState> {
   try {
     const projectId = uuid(form, 'projectId');
-    const { user } = await projectAccess(projectId);
-    await db
-      .insert(documents)
-      .values({ projectId, createdBy: user.id, title: nameSchema.parse(value(form, 'title')) });
+    const { user, project } = await projectAccess(projectId);
+    const title = nameSchema.parse(value(form, 'title'));
+    await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(documents)
+        .values({ projectId, createdBy: user.id, title })
+        .returning();
+      await tx.insert(activityEvents).values({
+        workspaceId: project.workspaceId,
+        actorId: user.id,
+        action: 'document.created',
+        objectType: 'document',
+        objectId: created.id,
+      });
+    });
   } catch (error) {
     return failure(error);
   }
@@ -228,11 +332,21 @@ export async function renameDocument(_state: ActionState, form: FormData): Promi
     const documentId = uuid(form, 'documentId');
     const document = await db.query.documents.findFirst({ where: eq(documents.id, documentId) });
     if (!document) throw new Error('Document not found.');
-    await projectAccess(document.projectId);
-    await db
-      .update(documents)
-      .set({ title: nameSchema.parse(value(form, 'title')), updatedAt: new Date() })
-      .where(eq(documents.id, documentId));
+    const { user, project } = await projectAccess(document.projectId);
+    const title = nameSchema.parse(value(form, 'title'));
+    await db.transaction(async (tx) => {
+      await tx
+        .update(documents)
+        .set({ title, updatedAt: new Date() })
+        .where(eq(documents.id, documentId));
+      await tx.insert(activityEvents).values({
+        workspaceId: project.workspaceId,
+        actorId: user.id,
+        action: 'document.renamed',
+        objectType: 'document',
+        objectId: documentId,
+      });
+    });
   } catch (error) {
     return failure(error);
   }

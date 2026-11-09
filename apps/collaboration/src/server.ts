@@ -24,7 +24,7 @@ export type Context = {
   color: string;
   role: string;
 };
-const colors = ['#657e54', '#b1865c', '#6c8d9a', '#a67682', '#8d83ad'];
+const colors = ['#a4c580', '#e6b17d', '#98c7d9', '#e0a5b5', '#bdb0e5'];
 export async function authorize(documentId: string, sessionHash: string) {
   if (documentId.startsWith('code:')) {
     const fileId = z.uuid().parse(documentId.slice(5));

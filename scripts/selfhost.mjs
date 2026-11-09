@@ -8,6 +8,7 @@ import {
   parseConfig,
   validateConfig,
   composeArguments,
+  enableLocalOffice,
 } from './lib/selfhost-config.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -15,6 +16,7 @@ const help = `FLOWSTATE self-hosting
 
 npm run selfhost                          Generate private config and start the core stack
 npm run setup                            Generate .env.selfhost without starting anything
+npm run setup:office                     Enable the optional local office editor profile
 npm run selfhost -- --port 3100 --sync-port 1334
 npm run selfhost -- --domain workspace.example.com
 npm run selfhost:stop                     Stop services; keep database volumes
@@ -72,8 +74,18 @@ async function main() {
     return;
   }
   const command = positionals[0] || 'start';
-  if (positionals.length > 1 || !['setup', 'start', 'stop', 'logs', 'doctor'].includes(command))
+  if (
+    positionals.length > 1 ||
+    !['setup', 'setup-office', 'start', 'stop', 'logs', 'doctor'].includes(command)
+  )
     throw new Error(help);
+  if (command === 'setup-office') {
+    const { created } = enableLocalOffice({ directory: root });
+    console.log(
+      `${created ? 'Enabled' : 'Preserved'} the optional local office configuration. Secret values are not printed. Run npm run selfhost when Docker is ready.`,
+    );
+    return;
+  }
   if (command === 'doctor') {
     console.log(`Node.js ${process.versions.node}`);
     prerequisites();

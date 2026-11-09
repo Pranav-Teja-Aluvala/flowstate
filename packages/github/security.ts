@@ -32,3 +32,31 @@ export function safeCodePath(value: string) {
     throw new Error('Choose a regular repository file path.');
   return value;
 }
+export function githubRepositoryURL(value: string) {
+  try {
+    const url = new URL(value);
+    if (
+      url.protocol !== 'https:' ||
+      url.hostname !== 'github.com' ||
+      url.port ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash
+    )
+      throw new Error();
+    const parts = url.pathname.replace(/\/$/, '').split('/').slice(1);
+    if (parts.length !== 2) throw new Error();
+    const owner = parts[0],
+      name = parts[1].replace(/\.git$/, '');
+    if (
+      !/^[a-zA-Z0-9-]{1,100}$/.test(owner) ||
+      !/^[a-zA-Z0-9_.-]{1,100}$/.test(name) ||
+      ['.', '..'].includes(name)
+    )
+      throw new Error();
+    return { owner, name };
+  } catch {
+    throw new Error('Use a GitHub repository URL such as https://github.com/team/project.');
+  }
+}

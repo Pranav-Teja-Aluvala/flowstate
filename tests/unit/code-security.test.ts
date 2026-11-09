@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createHmac, randomBytes } from 'node:crypto';
-import { encryptToken, decryptToken, safeCodePath } from '../../packages/github/security';
+import {
+  encryptToken,
+  decryptToken,
+  safeCodePath,
+  githubRepositoryURL,
+} from '../../packages/github/security';
 import { containerConfiguration, verifyRunnerTicket } from '../../apps/runner/src/policy';
 import { readRepositoryFile } from '../../packages/github';
 afterEach(() => {
@@ -8,6 +13,20 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 describe('private source and runner boundaries', () => {
+  it('accepts repository URLs without treating arbitrary URLs or embedded credentials as repository access', () => {
+    expect(githubRepositoryURL('https://github.com/team/project.git')).toEqual({
+      owner: 'team',
+      name: 'project',
+    });
+    for (const value of [
+      'http://github.com/team/project',
+      'https://token@github.com/team/project',
+      'https://github.com/team/project?token=secret',
+      'https://github.com/team/project/tree/main',
+      'https://other.example/team/project',
+    ])
+      expect(() => githubRepositoryURL(value)).toThrow('GitHub repository URL');
+  });
   it('encrypts credentials with authenticated encryption and rejects tampering', () => {
     vi.stubEnv('GITHUB_TOKEN_KEY', randomBytes(32).toString('hex'));
     const encrypted = encryptToken('test-private-user-token');

@@ -168,9 +168,14 @@ export function SharedCodeEditor({
                 'aria-multiline': 'true',
               }),
               EditorView.theme({
-                '&': { fontSize: '13px', minHeight: '420px', backgroundColor: '#fff' },
+                '&': {
+                  fontSize: '13px',
+                  minHeight: '420px',
+                  backgroundColor: '#f8f5ec',
+                  color: '#30352c',
+                },
                 '.cm-content': { fontFamily: 'Consolas, monospace', padding: '20px 0' },
-                '.cm-gutters': { backgroundColor: '#f4f6ef', color: '#929e85', border: 'none' },
+                '.cm-gutters': { backgroundColor: '#eeeae0', color: '#626b57', border: 'none' },
                 '.cm-scroller': { overflow: 'auto' },
               }),
             ],

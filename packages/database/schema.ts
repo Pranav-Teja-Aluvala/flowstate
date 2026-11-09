@@ -11,6 +11,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 export const role = pgEnum('role', ['owner', 'admin', 'editor', 'viewer']);
+export const taskPriority = pgEnum('task_priority', ['low', 'normal', 'high', 'urgent']);
 const dates = { createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull() };
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -54,6 +55,30 @@ export const memberships = pgTable(
     ...dates,
   },
   (t) => [primaryKey({ columns: [t.workspaceId, t.userId] })],
+);
+export const workspaceNotes = pgTable('workspace_notes', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id')
+    .notNull()
+    .references(() => workspaces.id, { onDelete: 'cascade' }),
+  authorId: uuid('author_id')
+    .notNull()
+    .references(() => users.id),
+  body: text('body').notNull(),
+  ...dates,
+});
+export const workspacePresence = pgTable(
+  'workspace_presence',
+  {
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    sessionHash: text('session_hash')
+      .notNull()
+      .references(() => sessions.tokenHash, { onDelete: 'cascade' }),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.workspaceId, table.sessionHash] })],
 );
 export const projects = pgTable('projects', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -117,6 +142,7 @@ export const tasks = pgTable('tasks', {
     .references(() => columns.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
   description: text('description').notNull().default(''),
+  priority: taskPriority('priority').notNull().default('normal'),
   assigneeId: uuid('assignee_id').references(() => users.id, { onDelete: 'set null' }),
   sortKey: integer('sort_key').notNull(),
   version: integer('version').notNull().default(1),
@@ -211,6 +237,33 @@ export const codeStates = pgTable('code_states', {
   revision: integer('revision').default(1).notNull(),
   savedAt: timestamp('saved_at', { withTimezone: true }).defaultNow().notNull(),
 });
+export const codeSuggestions = pgTable('code_suggestions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  fileId: uuid('file_id')
+    .notNull()
+    .references(() => codeFiles.id, { onDelete: 'cascade' }),
+  authorId: uuid('author_id')
+    .notNull()
+    .references(() => users.id),
+  title: text('title').notNull(),
+  baselineHash: text('baseline_hash').notNull(),
+  beforeContent: text('before_content').notNull(),
+  proposedContent: text('proposed_content').notNull(),
+  status: text('status').notNull().default('pending'),
+  reviewedBy: uuid('reviewed_by').references(() => users.id),
+  ...dates,
+});
+export const codeComments = pgTable('code_comments', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  sessionId: uuid('session_id')
+    .notNull()
+    .references(() => codeSessions.id, { onDelete: 'cascade' }),
+  authorId: uuid('author_id')
+    .notNull()
+    .references(() => users.id),
+  body: text('body').notNull(),
+  ...dates,
+});
 
 export const projectFiles = pgTable('project_files', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -222,8 +275,27 @@ export const projectFiles = pgTable('project_files', {
   size: integer('size').notNull(),
   storageKey: text('storage_key').notNull().unique(),
   storageProvider: text('storage_provider').notNull(),
+  version: integer('version').notNull().default(1),
+  officeKey: uuid('office_key').notNull().defaultRandom(),
+  officeSavedKey: uuid('office_saved_key'),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   createdBy: uuid('created_by')
     .notNull()
     .references(() => users.id),
   ...dates,
 });
+export const projectFileVersions = pgTable(
+  'project_file_versions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    fileId: uuid('file_id')
+      .notNull()
+      .references(() => projectFiles.id, { onDelete: 'cascade' }),
+    version: integer('version').notNull(),
+    size: integer('size').notNull(),
+    storageKey: text('storage_key').notNull().unique(),
+    storageProvider: text('storage_provider').notNull(),
+    ...dates,
+  },
+  (table) => [uniqueIndex('project_file_version_number').on(table.fileId, table.version)],
+);

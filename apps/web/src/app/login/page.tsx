@@ -88,7 +88,12 @@ export default async function Login({
               {register ? 'Sign in' : 'Create an account'} <ArrowUpRight size={13} />
             </Link>
           </p>
-          <p className="auth-note">A focused home for the work that matters.</p>
+          <p className="auth-note">
+            A focused home for the work that matters.
+            <br />
+            <Link href="/about">About</Link> · <Link href="/privacy">Privacy policy</Link> ·{' '}
+            <Link href="/terms">Terms of use</Link>
+          </p>
         </div>
       </section>
     </main>

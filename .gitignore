@@ -7,6 +7,8 @@ coverage/
 playwright-report/
 test-results/
 code-test-results/
+office-test-results/
+office-live-results/
 *.tsbuildinfo
 **/next-env.d.ts
 .local/

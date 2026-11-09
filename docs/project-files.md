@@ -4,7 +4,7 @@ Project overview now links to **Files**. Workspace owners, administrators and ed
 
 Supported upload extensions: PDF, DOCX, XLSX, PPTX, TXT, MD and CSV. Limits are 4 MiB per file and 100 MiB per project, with concurrent upload quota checks serialized in PostgreSQL. Browser MIME types are not trusted. Basic PDF/ZIP signatures and UTF-8 text are checked; these checks do not validate complete Office archives, scan malware or guarantee that a file is safe. Files are not automatically executed, extracted or rendered as HTML.
 
-This milestone preserves original file bytes for sharing and download. **It does not implement office editing yet.** Older binary DOC/XLS/PPT and macro-enabled files are not supported.
+This library preserves original file bytes for sharing and download. Version 2 adds an optional [office-editor integration](office-editing.md), including final-save history; real engine verification is still pending. Older binary DOC/XLS/PPT and macro-enabled files are not supported.
 
 ## Local storage
 

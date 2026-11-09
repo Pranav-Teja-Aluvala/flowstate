@@ -1,6 +1,6 @@
 # Self-host FLOWSTATE
 
-These instructions describe operating an authorized FLOWSTATE instance. The public revision is not offered under an open-source license; see LICENSE. The core includes accounts, workspaces, projects, boards and collaborative documents. It needs no GitHub App, cloud database account or FLOWSTATE subscription. You operate the instance and own its data. Server, domain and infrastructure costs depend on your choices.
+These instructions describe operating an authorized FLOWSTATE instance. The current public revision is not offered under an open-source license; see the repository LICENSE. The core includes accounts, workspaces, projects, boards and collaborative documents. It needs no GitHub App, cloud database account or FLOWSTATE subscription. You operate the instance and own its data. Server, domain and infrastructure costs depend on your choices.
 
 ## Start on your computer
 

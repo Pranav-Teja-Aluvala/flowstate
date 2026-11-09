@@ -10,6 +10,7 @@ import {
   CircleHelp,
 } from 'lucide-react';
 import { logout } from '@/lib/actions';
+import { WorkspacePresence } from './workspace-presence';
 type Workspace = { id: string; name: string };
 export function Shell({
   user,
@@ -25,6 +26,9 @@ export function Shell({
   const current = workspaces.find((w) => w.id === active);
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#workspace-content">
+        Skip to workspace
+      </a>
       <aside className="sidebar">
         <Link href="/" className="brand">
           <Layers2 size={23} />
@@ -65,6 +69,7 @@ export function Shell({
             </Link>
           )}
         </nav>
+        {active && <WorkspacePresence key={active} workspaceId={active} />}
         <div className="sidebar-note">
           <span className="note-line" />
           <p>
@@ -93,7 +98,9 @@ export function Shell({
           </div>
         </div>
       </aside>
-      <div className="main-panel">{children}</div>
+      <div className="main-panel" id="workspace-content" tabIndex={-1}>
+        {children}
+      </div>
     </div>
   );
 }

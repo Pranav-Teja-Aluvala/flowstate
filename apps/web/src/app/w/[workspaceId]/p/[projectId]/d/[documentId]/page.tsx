@@ -10,6 +10,7 @@ import { renameDocument } from '@/lib/work-actions';
 import { ActionForm, Dialog } from '@/components/forms';
 import { CollaborativeEditor } from '@/components/editor';
 import { Shell } from '@/components/shell';
+import { DocumentExport } from '@/components/document-export';
 export default async function DocumentPage({
   params,
 }: {
@@ -48,17 +49,20 @@ export default async function DocumentPage({
             <p className="eyebrow">THINK ON THE SAME PAGE</p>
             <h1>{document.title}</h1>
           </div>
-          {canWrite(workspace.role) && (
-            <Dialog title="Rename document" trigger="Rename">
-              <ActionForm action={renameDocument} label="Rename document">
-                <input type="hidden" name="documentId" value={documentId} />
-                <label>
-                  Document title
-                  <input name="title" defaultValue={document.title} required maxLength={80} />
-                </label>
-              </ActionForm>
-            </Dialog>
-          )}
+          <div className="document-actions">
+            <DocumentExport />
+            {canWrite(workspace.role) && (
+              <Dialog title="Rename document" trigger="Rename">
+                <ActionForm action={renameDocument} label="Rename document">
+                  <input type="hidden" name="documentId" value={documentId} />
+                  <label>
+                    Document title
+                    <input name="title" defaultValue={document.title} required maxLength={80} />
+                  </label>
+                </ActionForm>
+              </Dialog>
+            )}
+          </div>
         </section>
         <CollaborativeEditor
           documentId={documentId}

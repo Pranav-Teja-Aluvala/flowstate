@@ -1,5 +1,7 @@
 name: Verify FLOWSTATE
 on: [push, pull_request]
+permissions:
+  contents: read
 jobs:
   application:
     runs-on: ubuntu-latest
@@ -35,6 +37,8 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - run: npm run test:code
+      - run: npm run test:office
+      - run: npm run audit:site -- --start
       - run: npm audit --omit=dev
       - uses: actions/upload-artifact@v4
         if: failure()
@@ -43,8 +47,22 @@ jobs:
           path: |
             test-results
             code-test-results
+            office-test-results
   containers:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: flowstate
+          POSTGRES_PASSWORD: ci_runner_database_only
+          POSTGRES_DB: flowstate
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U flowstate -d flowstate"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://flowstate:ci_runner_database_only@localhost:5432/flowstate
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -54,9 +72,72 @@ jobs:
       - run: npm ci
       - run: npm run setup
       - run: docker compose --env-file .env.selfhost config --quiet
+      - run: docker build -t flowstate-runner:local -f infra/docker/runner.Dockerfile .
+      - run: npm run test:docker
+      - run: npm run db:migrate
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:code
+        env:
+          FLOWSTATE_LIVE_RUNNER: '1'
       - run: docker build --target web -t flowstate-web:ci -f infra/docker/Dockerfile .
       - name: Check private configuration is excluded from image
         run: docker run --rm --entrypoint node flowstate-web:ci -e "if(require('fs').existsSync('/app/.env.selfhost')) process.exit(1)"
       - run: docker build --target collaboration -f infra/docker/Dockerfile .
-      - run: docker build -t flowstate-runner:local -f infra/docker/runner.Dockerfile .
-      - run: npm run test:docker
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: live-runner-failure
+          retention-days: 3
+          path: code-test-results
+  office-engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: flowstate
+          POSTGRES_PASSWORD: ci_office_database_only
+          POSTGRES_DB: flowstate
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U flowstate -d flowstate"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      office:
+        image: onlyoffice/documentserver:10.0.0
+        env:
+          JWT_ENABLED: 'true'
+          JWT_SECRET: ci_real_office_fixture_secret_at_least_32_characters
+          JWT_HEADER: Authorization
+          ALLOW_PRIVATE_IP_ADDRESS: 'true'
+        ports: ['8082:80']
+        options: >-
+          --shm-size=1gb --memory=4g
+          --add-host=host.docker.internal:host-gateway
+          --health-cmd "curl -f http://localhost/healthcheck"
+          --health-interval 15s --health-timeout 10s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://flowstate:ci_office_database_only@localhost:5432/flowstate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: npm ci
+      - run: python -m pip install -r tests/support/office-requirements.txt
+      - run: python tests/support/office-fixtures.py
+      - run: npm run db:migrate
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:office:live
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: real-office-failure
+          retention-days: 3
+          path: office-live-results

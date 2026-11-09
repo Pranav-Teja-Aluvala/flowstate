@@ -3,6 +3,50 @@ import { pack } from 'tar-stream';
 import type { SnapshotFile } from './snapshot';
 import { RunnerError } from './policy';
 import { safeCodePath } from '@flowstate/github';
+import { PassThrough } from 'node:stream';
+export async function runtimeArchive(container: Docker.Container) {
+  const command = await container.exec({
+    Cmd: ['tar', '-c', '-C', '/workspace', '.'],
+    User: '1000:1000',
+    WorkingDir: '/workspace',
+    AttachStdout: true,
+    AttachStderr: true,
+    Tty: false,
+  });
+  const stream = await command.start({ hijack: true, stdin: false, Tty: false });
+  const output = new PassThrough();
+  const errors = new PassThrough();
+  errors.on('data', () => {});
+  container.modem.demuxStream(stream, output, errors);
+  const timer = setTimeout(() => {
+    stream.destroy();
+    output.destroy(new RunnerError('Runtime review timed out.'));
+  }, 20_000);
+  stream.on('error', (error) => {
+    clearTimeout(timer);
+    output.destroy(error);
+  });
+  stream.on('end', () => {
+    clearTimeout(timer);
+    void command
+      .inspect()
+      .then((info) => {
+        if (info.ExitCode !== 0)
+          output.destroy(
+            new RunnerError(
+              'The terminal files changed during review. Retry after the command finishes.',
+            ),
+          );
+        else output.end();
+      })
+      .catch((error) => output.destroy(error));
+  });
+  output.on('close', () => {
+    clearTimeout(timer);
+    stream.destroy();
+  });
+  return output;
+}
 export async function putFiles(container: Docker.Container, files: SnapshotFile[]) {
   // Docker's archive PUT rejects read-only root filesystems, even for writable tmpfs paths.
   // Extract through an unprivileged exec into /workspace instead; keep rootfs protection intact.

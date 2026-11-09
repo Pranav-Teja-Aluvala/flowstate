@@ -2,7 +2,8 @@ import { afterAll, beforeAll, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { PassThrough } from 'node:stream';
 import Docker from 'dockerode';
-import { putFiles } from '../../apps/runner/src/files';
+import { putFiles, runtimeArchive } from '../../apps/runner/src/files';
+import { collectRuntimeChanges, contentHash } from '../../apps/runner/src/changes';
 import { containerConfiguration } from '../../apps/runner/src/policy';
 const docker = new Docker({
   socketPath:
@@ -54,6 +55,31 @@ it('executes a source snapshot as non-root and retains writable workspace files'
     await run(['node', '-e', 'console.log(require("node:fs").readFileSync("result.txt","utf8"))']),
   ).toContain('sandbox-ok');
 });
+it('reviews files from the running tmpfs rather than a stopped-container filesystem view', async () => {
+  await run(['node', '-e', 'require("node:fs").appendFileSync("result.txt","-changed")']);
+  const changes = await collectRuntimeChanges(
+    await runtimeArchive(container),
+    new Map([['result.txt', contentHash('sandbox-ok')]]),
+  );
+  expect(changes).toEqual([
+    { path: 'result.txt', baselineHash: contentHash('sandbox-ok'), content: 'sandbox-ok-changed' },
+  ]);
+});
+it('queues CLI publishing for explicit browser review without exposing GitHub credentials', async () => {
+  expect(await run(['flowstate', 'push', 'Update the team prototype'])).toContain(
+    'Nothing has been pushed yet.',
+  );
+  const request = JSON.parse((await run(['cat', '/tmp/flowstate-publish.json'])).trim());
+  expect(request.title).toBe('Update the team prototype');
+  expect(request.id).toMatch(/^[a-f0-9-]{36}$/);
+  expect(
+    await run([
+      'node',
+      '-e',
+      'console.log(Object.keys(process.env).filter(key=>/GITHUB|TOKEN|SECRET/.test(key)).join(","))',
+    ]),
+  ).not.toMatch(/GITHUB|TOKEN|SECRET/);
+});
 it('enforces network, root-filesystem and Docker-socket isolation', async () => {
   const info = await container.inspect();
   expect(info.HostConfig.NetworkMode).toBe('none');
@@ -66,7 +92,7 @@ it('enforces network, root-filesystem and Docker-socket isolation', async () => 
       '-e',
       'const fs=require("node:fs");console.log(fs.existsSync("/var/run/docker.sock"));try{fs.writeFileSync("/etc/flowstate-test","x");console.log("WRITABLE")}catch{console.log("BLOCKED")}',
     ]),
-  ).toContain('false\nBLOCKED');
+  ).toMatch(/false\r?\nBLOCKED/);
   expect(
     await run([
       'node',

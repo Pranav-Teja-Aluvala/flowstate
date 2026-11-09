@@ -1,21 +1,32 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { asc, eq } from 'drizzle-orm';
+import { asc, desc, eq, sql } from 'drizzle-orm';
 import { ArrowUpRight, FolderOpen, Users, ArrowRight, LayoutGrid } from 'lucide-react';
-import { db, projects, memberships } from '@flowstate/database';
+import {
+  db,
+  projects,
+  memberships,
+  workspaceNotes,
+  users,
+  activityEvents,
+  tasks,
+  columns,
+  boards,
+} from '@flowstate/database';
 import { canWrite } from '@flowstate/contracts';
 import { requireUser } from '@/lib/auth';
 import { userWorkspaces } from '@/lib/queries';
 import { saveProject } from '@/lib/actions';
 import { ActionForm, Dialog } from '@/components/forms';
 import { Shell } from '@/components/shell';
+import { postTeamNote } from '@/lib/work-actions';
 export default async function Workspace({ params }: { params: Promise<{ workspaceId: string }> }) {
   const { workspaceId } = await params;
   const user = await requireUser();
   const spaces = await userWorkspaces(user.id);
   const workspace = spaces.find((w) => w.id === workspaceId);
   if (!workspace) notFound();
-  const [items, members] = await Promise.all([
+  const [items, members, notes, activity, summary] = await Promise.all([
     db
       .select()
       .from(projects)
@@ -25,6 +36,40 @@ export default async function Workspace({ params }: { params: Promise<{ workspac
       .select({ userId: memberships.userId })
       .from(memberships)
       .where(eq(memberships.workspaceId, workspaceId)),
+    db
+      .select({
+        id: workspaceNotes.id,
+        body: workspaceNotes.body,
+        author: users.name,
+        createdAt: workspaceNotes.createdAt,
+      })
+      .from(workspaceNotes)
+      .innerJoin(users, eq(workspaceNotes.authorId, users.id))
+      .where(eq(workspaceNotes.workspaceId, workspaceId))
+      .orderBy(desc(workspaceNotes.createdAt))
+      .limit(20),
+    db
+      .select({
+        id: activityEvents.id,
+        action: activityEvents.action,
+        actor: users.name,
+        createdAt: activityEvents.createdAt,
+      })
+      .from(activityEvents)
+      .innerJoin(users, eq(activityEvents.actorId, users.id))
+      .where(eq(activityEvents.workspaceId, workspaceId))
+      .orderBy(desc(activityEvents.createdAt))
+      .limit(8),
+    db
+      .select({
+        total: sql<number>`count(*)::int`,
+        assigned: sql<number>`count(*) filter (where ${tasks.assigneeId} = ${user.id})::int`,
+      })
+      .from(tasks)
+      .innerJoin(columns, eq(tasks.columnId, columns.id))
+      .innerJoin(boards, eq(columns.boardId, boards.id))
+      .innerJoin(projects, eq(boards.projectId, projects.id))
+      .where(eq(projects.workspaceId, workspaceId)),
   ]);
   return (
     <Shell user={user} workspaces={spaces} active={workspaceId}>
@@ -42,11 +87,11 @@ export default async function Workspace({ params }: { params: Promise<{ workspac
       <main className="workspace-main">
         <section className="page-heading">
           <div>
-            <p className="eyebrow">A PLACE FOR WHAT’S NEXT</p>
+            <p className="eyebrow">01 / COMMAND CENTER</p>
             <h1>
               Your projects<span className="heading-dot">.</span>
             </h1>
-            <p className="muted">Big ideas. Small steps. All moving forward.</p>
+            <p className="muted">A shared space for ideas in motion.</p>
           </div>
           {canWrite(workspace.role) && (
             <Dialog title="Start a new project" trigger="New project">
@@ -74,15 +119,15 @@ export default async function Workspace({ params }: { params: Promise<{ workspac
             </Dialog>
           )}
         </section>
-        <section className="workspace-banner">
+        <section className="workspace-banner" aria-label="Workspace overview">
           <div>
             <span className="eyebrow">{workspace.name.toUpperCase()}</span>
             <h2>
-              Make space for
+              Different minds.
               <br />
-              <em>your best work.</em>
+              <em>Shared momentum.</em>
             </h2>
-            <p>A shared direction starts with a project.</p>
+            <p>Plan the work. Shape the idea. Build it together.</p>
           </div>
           <Link className="banner-action" href={`/w/${workspaceId}/settings`}>
             <span className="banner-action-icon">
@@ -97,50 +142,118 @@ export default async function Workspace({ params }: { params: Promise<{ workspac
             </strong>
           </Link>
         </section>
-        <div className="section-heading">
-          <h2>
-            <LayoutGrid size={17} />
-            All projects <span>{items.length.toString().padStart(2, '0')}</span>
-          </h2>
-          <span className="muted small">Your shared starting points</span>
+        <div className="workspace-task-summary" aria-label="Workspace overview counts">
+          <span>
+            <strong>{items.length.toString().padStart(2, '0')}</strong> projects
+          </span>
+          <span aria-label="Workspace task summary">
+            <strong>{summary[0].total}</strong> tasks · {summary[0].assigned} assigned to you
+          </span>
+          <span className="studio-caption">THE STUDIO / {workspace.role}</span>
         </div>
-        {items.length ? (
-          <div className="project-grid">
-            {items.map((project, i) => (
-              <Link
-                href={`/w/${workspaceId}/p/${project.id}`}
-                className="project-card"
-                key={project.id}
-              >
-                <div className={`project-icon tone-${i % 3}`}>
-                  <FolderOpen size={22} />
-                </div>
-                <ArrowUpRight className="project-arrow" size={19} />
-                <h3>{project.name}</h3>
-                <p>{project.description || 'A fresh space for your next idea.'}</p>
-                <footer>
-                  <span>
-                    Created{' '}
-                    {project.createdAt.toLocaleDateString('en-GB', {
-                      day: 'numeric',
-                      month: 'short',
-                      timeZone: 'Asia/Kolkata',
-                    })}
-                  </span>
-                  <ArrowRight size={15} />
-                </footer>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <section className="empty-state">
-            <FolderOpen size={30} strokeWidth={1} />
-            <h3>Your next idea belongs here.</h3>
-            <p>Create your first project to give the work a home.</p>
+        <div className="command-layout">
+          <section className="workspace-projects" aria-label="Projects">
+            <div className="section-heading">
+              <h2>
+                <LayoutGrid size={17} />
+                All projects <span>{items.length.toString().padStart(2, '0')}</span>
+              </h2>
+              <span className="muted small">Your shared starting points</span>
+            </div>
+            {items.length ? (
+              <div className="project-grid">
+                {items.map((project, i) => (
+                  <Link
+                    href={`/w/${workspaceId}/p/${project.id}`}
+                    className="project-card"
+                    key={project.id}
+                  >
+                    <div className={`project-icon tone-${i % 3}`}>
+                      <FolderOpen size={22} />
+                    </div>
+                    <ArrowUpRight className="project-arrow" size={19} />
+                    <h3>{project.name}</h3>
+                    <p>{project.description || 'A fresh space for your next idea.'}</p>
+                    <footer>
+                      <span>
+                        Created{' '}
+                        {project.createdAt.toLocaleDateString('en-GB', {
+                          day: 'numeric',
+                          month: 'short',
+                          timeZone: 'Asia/Kolkata',
+                        })}
+                      </span>
+                      <ArrowRight size={15} />
+                    </footer>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <section className="empty-state">
+                <FolderOpen size={30} strokeWidth={1} />
+                <h3>Your next idea belongs here.</h3>
+                <p>Create your first project to give the work a home.</p>
+              </section>
+            )}
           </section>
-        )}
+          <aside className="workspace-updates" aria-label="Team updates">
+            <section className="settings-card">
+              <h2>Team notes</h2>
+              {canWrite(workspace.role) && (
+                <Dialog title="Share a team note" trigger="Share note">
+                  <ActionForm action={postTeamNote} label="Share note">
+                    <input type="hidden" name="workspaceId" value={workspaceId} />
+                    <label>
+                      Your note
+                      <textarea
+                        name="body"
+                        required
+                        maxLength={2000}
+                        placeholder="Share context, a decision or a quick update…"
+                      />
+                    </label>
+                  </ActionForm>
+                </Dialog>
+              )}
+              {notes.length ? (
+                <ol className="team-notes">
+                  {notes.map((note) => (
+                    <li key={note.id}>
+                      <p className="note-body">{note.body}</p>
+                      <small>
+                        {note.author} ·{' '}
+                        {note.createdAt.toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' })}
+                      </small>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="muted">A place for your team’s decisions and updates.</p>
+              )}
+            </section>
+            <section className="settings-card">
+              <h2>Recent activity</h2>
+              {activity.length ? (
+                <ol className="team-notes">
+                  {activity.map((event) => (
+                    <li key={event.id}>
+                      <p>
+                        {event.actor} · {event.action.replaceAll('.', ' ')}
+                      </p>
+                      <small>
+                        {event.createdAt.toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' })}
+                      </small>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="muted">Workspace activity will appear here as your team works.</p>
+              )}
+            </section>
+          </aside>
+        </div>
         <footer className="page-footer">
-          <span>Thoughtful work starts here.</span>
+          <span>Independent ideas. Collective progress.</span>
           <span>
             FLOWSTATE <span className="brand-dot" />
           </span>
