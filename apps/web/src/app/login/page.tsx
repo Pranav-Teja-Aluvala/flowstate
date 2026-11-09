@@ -9,7 +9,7 @@ export default async function Login({
 }: {
   searchParams: Promise<{ mode?: string }>;
 }) {
-  if (await currentUser()) redirect('/');
+  if (await currentUser()) redirect('/app');
   const register = (await searchParams).mode === 'register';
   return (
     <main className="auth-layout">

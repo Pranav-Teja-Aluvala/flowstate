@@ -65,7 +65,7 @@ export async function authenticate(_state: ActionState, form: FormData): Promise
   } catch (error) {
     return { error: message(error) };
   }
-  redirect('/');
+  redirect('/app');
 }
 export async function logout() {
   const jar = await cookies();
@@ -139,7 +139,7 @@ export async function deleteWorkspace(_state: ActionState, form: FormData): Prom
     return { error: message(error) };
   }
   revalidatePath('/');
-  redirect('/');
+  redirect('/app');
 }
 export async function saveProject(_state: ActionState, form: FormData): Promise<ActionState> {
   try {

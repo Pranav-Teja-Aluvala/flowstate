@@ -116,7 +116,7 @@ export function CollaborativeEditor({
               className="collaborator"
               key={person.id}
               title={person.name}
-              style={{ background: `${person.color}22`, color: person.color }}
+              style={{ background: `${person.color}22`, color: '#34392f' }}
             >
               {person.name.slice(0, 1)}
             </span>

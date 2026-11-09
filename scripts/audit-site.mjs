@@ -20,7 +20,7 @@ if (process.argv.includes('--start')) {
     if (service.exitCode !== null)
       throw new Error('Audit server could not start. Check that its port is free.');
     try {
-      if ((await fetch(origin + '/about')).ok) {
+      if ((await fetch(origin + '/')).ok) {
         ready = true;
         break;
       }
@@ -42,7 +42,7 @@ const browser = await chromium.launch({ args: [`--remote-debugging-port=${port}`
 await mkdir('.local/audits', { recursive: true });
 let failed = false;
 try {
-  for (const path of ['/about', '/privacy', '/terms']) {
+  for (const path of ['/', '/privacy', '/terms']) {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const page = await context.newPage();
     await page.goto(origin + path);
@@ -50,7 +50,7 @@ try {
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
       .analyze();
     await writeFile(
-      `.local/audits/${path.slice(1)}-accessibility.json`,
+      `.local/audits/${path === '/' ? 'landing' : path.slice(1)}-accessibility.json`,
       JSON.stringify(axe, null, 2),
     );
     const result = await lighthouse(origin + path, {
@@ -67,8 +67,14 @@ try {
       },
       logLevel: 'error',
     });
-    await writeFile(`.local/audits/${path.slice(1)}-lighthouse.json`, result.report[0]);
-    await writeFile(`.local/audits/${path.slice(1)}-lighthouse.html`, result.report[1]);
+    await writeFile(
+      `.local/audits/${path === '/' ? 'landing' : path.slice(1)}-lighthouse.json`,
+      result.report[0],
+    );
+    await writeFile(
+      `.local/audits/${path === '/' ? 'landing' : path.slice(1)}-lighthouse.html`,
+      result.report[1],
+    );
     const scores = Object.fromEntries(
       Object.entries(result.lhr.categories).map(([key, value]) => [
         key,

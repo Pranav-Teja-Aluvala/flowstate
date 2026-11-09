@@ -27,6 +27,7 @@ import { requireUser } from '@/lib/auth';
 import { userWorkspaces } from '@/lib/queries';
 import {
   connectRepository,
+  connectPublicRepository,
   startCodeSession,
   disconnectGitHub,
   publishPullRequest,
@@ -84,7 +85,7 @@ export default async function ProjectCode({
   let prs: { number: number; title: string; html_url: string }[] = [];
   let entries: GitHubEntry[] = [];
   let push = false;
-  if (account)
+  if (account || repo?.accessMode === 'public')
     try {
       if (!repo) {
         const token = await githubToken(user.id);
@@ -106,7 +107,7 @@ export default async function ProjectCode({
           ).repositories;
       } else {
         const access = await repositoryAccess(user.id, projectId);
-        push = Boolean(access.remote.permissions?.push);
+        push = repo.accessMode === 'public' || Boolean(access.remote.permissions?.push);
         const path = repositoryPath(repo);
         [branches, commits, prs] = await Promise.all([
           githubFetch<typeof branches>(access.token, `${path}/branches?per_page=100`),
@@ -172,10 +173,38 @@ export default async function ProjectCode({
             {error}
           </p>
         )}
-        {!account ? (
+        {!repo && canManage(workspace.role) && (
+          <section className="settings-card public-repo-connect">
+            <h2>Start with a repository URL.</h2>
+            <p className="muted">
+              Connect a public repository and edit a shared copy with your team. No GitHub App setup
+              is needed for this option. Publishing back to GitHub requires an authorized
+              connection.
+            </p>
+            <ActionForm action={connectPublicRepository} label="Connect public repository">
+              <input type="hidden" name="projectId" value={projectId} />
+              <label>
+                Public GitHub repository URL
+                <input
+                  type="url"
+                  name="repositoryURL"
+                  required
+                  maxLength={300}
+                  placeholder="https://github.com/owner/repository"
+                />
+              </label>
+            </ActionForm>
+          </section>
+        )}
+        {repo?.accessMode === 'public' ? (
+          <p className="public-repo-status">
+            <GitFork size={17} /> Public repository connected · shared-copy editing. Your edits stay
+            in FLOWSTATE until you download them.
+          </p>
+        ) : !account ? (
           <section className="settings-card">
             <GitFork size={27} />
-            <h2>Connect your GitHub account</h2>
+            <h2>Need a private repository or GitHub publishing?</h2>
             <p className="muted">
               GitHub access stays personal. You need repository permission as well as FLOWSTATE
               project membership.
@@ -266,7 +295,7 @@ export default async function ProjectCode({
             )}
           </section>
         )}
-        {repo && account && !error && (
+        {repo && (account || repo.accessMode === 'public') && !error && (
           <>
             <section className="repo-summary">
               <div>
@@ -379,7 +408,7 @@ export default async function ProjectCode({
                   editable={canWrite(workspace.role) && push}
                 />
                 <CodeReviewPanel sessionId={session.id} fileId={file?.id} role={workspace.role} />
-                {canWrite(workspace.role) && push && (
+                {canWrite(workspace.role) && push && repo.accessMode !== 'public' && (
                   <section className="settings-card publish-card">
                     <h2>Review and publish your saved changes</h2>
                     <p className="muted">

@@ -87,11 +87,11 @@ export default async function Workspace({ params }: { params: Promise<{ workspac
       <main className="workspace-main">
         <section className="page-heading">
           <div>
-            <p className="eyebrow">01 / COMMAND CENTER</p>
+            <p className="eyebrow">YOUR WORKSPACE</p>
             <h1>
               Your projects<span className="heading-dot">.</span>
             </h1>
-            <p className="muted">A shared space for ideas in motion.</p>
+            <p className="muted">Projects, shared documents, and the next steps for your team.</p>
           </div>
           {canWrite(workspace.role) && (
             <Dialog title="Start a new project" trigger="New project">
@@ -118,29 +118,6 @@ export default async function Workspace({ params }: { params: Promise<{ workspac
               </ActionForm>
             </Dialog>
           )}
-        </section>
-        <section className="workspace-banner" aria-label="Workspace overview">
-          <div>
-            <span className="eyebrow">{workspace.name.toUpperCase()}</span>
-            <h2>
-              Different minds.
-              <br />
-              <em>Shared momentum.</em>
-            </h2>
-            <p>Plan the work. Shape the idea. Build it together.</p>
-          </div>
-          <Link className="banner-action" href={`/w/${workspaceId}/settings`}>
-            <span className="banner-action-icon">
-              <Users size={28} strokeWidth={1} />
-            </span>
-            <span>
-              {members.length} {members.length === 1 ? 'person' : 'people'}. One shared space.
-            </span>
-            <strong>
-              Meet your workspace
-              <ArrowUpRight size={16} />
-            </strong>
-          </Link>
         </section>
         <div className="workspace-task-summary" aria-label="Workspace overview counts">
           <span>

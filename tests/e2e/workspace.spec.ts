@@ -83,6 +83,7 @@ test('board ordering persists and two authorized users edit one rich-text docume
   await owner.getByRole('button', { name: 'Create document', exact: true }).click();
   await expect(owner.getByText('Document created.')).toBeVisible();
   await expect(owner.getByRole('dialog')).toHaveCount(0);
+  await expect(owner).toHaveURL(/\/d\/[a-f0-9-]+$/);
   await owner.goto(`${workspaceUrl}/settings`);
   await owner.getByLabel('Email address').fill(`sam-${suffix}@test.local`);
   await owner.getByLabel('Workspace role').selectOption('editor');
@@ -92,7 +93,7 @@ test('board ordering persists and two authorized users edit one rich-text docume
   await teammate.getByRole('button', { name: 'Join workspace' }).click();
   await expect(teammate.getByRole('heading', { name: 'Your projects.' })).toBeVisible();
   await owner.goto(projectUrl);
-  await owner.getByRole('link', { name: 'The launch brief' }).click();
+  await owner.getByRole('link', { name: 'The launch brief', exact: true }).click();
   await expect(owner).toHaveURL(/\/d\/[a-f0-9-]+$/);
   const documentUrl = owner.url();
   await teammate.goto(documentUrl);

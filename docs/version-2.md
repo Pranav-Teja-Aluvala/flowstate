@@ -29,3 +29,17 @@ See [verification](verification.md), [local setup](local-development.md),
 [Office setup](office-editing.md), [code workflow](code-workspace.md) and
 [monitoring](monitoring.md). External activation remains required for a real GitHub
 App, hosted storage and monitoring delivery. No production deployment is claimed.
+
+## Light studio follow-up
+
+The owner's latest direction supersedes the earlier all-dark visual brief. The
+new root landing page and light paper/cobalt UI follow design feedback requested
+from Claude in the user's existing side-panel conversation. Only generic product
+and design requirements were sent; no credentials or workspace files were sent.
+
+`/app` now handles signed-in entry/onboarding. The native document picker creates
+rich text, Word, spreadsheets, presentations and PDF pages. DOCX/XLSX/PPTX exports
+are generated locally; PDF output uses the browser print dialog. Public GitHub
+URLs support shared-copy editing and per-file downloads without App credentials.
+Uploaded Office file fidelity, private GitHub publishing and terminals retain
+their explicit external-service requirements.

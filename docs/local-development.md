@@ -20,8 +20,8 @@ PostgreSQL helper keeps its data in `.local/postgres`; stopping it preserves dat
 7. Open [localhost:3000](http://localhost:3000), create an email/password account,
    create a workspace and invite a teammate using a generated invitation link.
 
-Core projects, boards and native collaborative documents need no GitHub or Office
-credentials. GitHub access, Office-file editing and terminal execution have
+Core projects, boards, native Word/Excel/PowerPoint/PDF creation and public
+repository copies need no GitHub App or Office credentials. GitHub access, Office-file editing and terminal execution have
 separate [GitHub](github-setup.md), [Office](office-editing.md) and
 [runner](code-workspace.md) setup instructions. Docker/WSL installation is not
 performed by these native development commands.

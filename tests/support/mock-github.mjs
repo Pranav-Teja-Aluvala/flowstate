@@ -19,14 +19,32 @@ globalThis.fetch = async (input, init) => {
   const headers = new Headers(
     init?.headers || (input instanceof Request ? input.headers : undefined),
   );
-  if (!headers.get('authorization')?.startsWith('Bearer flowstate-fixture-'))
-    throw new Error('Only artificial test credentials are accepted by the GitHub fixture.');
   const url = new URL(raw);
-  const path = url.pathname;
+  const publicBase = '/repos/flowstate-fixture/public-repo';
+  const publicMode = url.pathname === publicBase || url.pathname.startsWith(publicBase + '/');
+  const path = publicMode ? url.pathname.replace(publicBase, base) : url.pathname;
   const method = init?.method || 'GET';
+  if (publicMode) {
+    if (headers.has('authorization') || method !== 'GET')
+      throw new Error('Public fixtures forbid credentials and remote writes.');
+  } else if (!headers.get('authorization')?.startsWith('Bearer flowstate-fixture-'))
+    throw new Error('Only artificial test credentials are accepted by the private GitHub fixture.');
   if (!path.startsWith(base)) throw new Error('Unexpected GitHub fixture endpoint.');
   if (method === 'GET') {
-    if (path === base) return Response.json(repository);
+    if (path === base)
+      return Response.json(
+        publicMode
+          ? {
+              ...repository,
+              id: 12346,
+              name: 'public-repo',
+              full_name: 'flowstate-fixture/public-repo',
+              private: false,
+              permissions: undefined,
+              html_url: 'https://github.com/flowstate-fixture/public-repo',
+            }
+          : repository,
+      );
     if (path.endsWith('/branches')) return Response.json([{ name: 'main' }]);
     if (path.endsWith('/commits'))
       return Response.json([

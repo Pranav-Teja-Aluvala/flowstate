@@ -1,5 +1,18 @@
 # Activate the GitHub App connection
 
+## Start with a public repository — no App setup
+
+In a project's Code & GitHub page, paste an HTTPS GitHub repository URL into
+**Connect public repository**. FLOWSTATE checks that GitHub exposes it publicly,
+creates a shared copy when you start a code session, and lets workspace editors
+work on that copy. Each saved source file can be downloaded. This mode does not
+grant GitHub write permission and cannot publish remotely. Anonymous GitHub
+request limits apply; public GET responses are cached for five minutes.
+
+The existing GitHub App path below remains required for private repositories and
+creating branches/pull requests. No user access token is borrowed from the
+operator, and a public connection never falls back to private credentials.
+
 FLOWSTATE now includes a GitHub App user-authorization integration. Each collaborator connects their own GitHub account. FLOWSTATE membership alone does not grant private repository access. Repository reads and publishing use the intersection of the user’s GitHub access and the App’s selected-repository installation permissions.
 
 ## Register the app

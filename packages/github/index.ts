@@ -102,11 +102,15 @@ export async function githubFetch<T>(
 ): Promise<T> {
   if (!path.startsWith('/') || path.startsWith('//'))
     throw new GitHubError('Invalid GitHub API path.');
+  if (!token && options.method && options.method !== 'GET')
+    throw new GitHubError('Publishing requires an authorized GitHub connection.');
+  const cached = !token ? publicReads.get(path) : undefined;
+  if (cached && cached.expires > Date.now()) return structuredClone(cached.value) as T;
   const response = await fetch(`https://api.github.com${path}`, {
     method: options.method || 'GET',
     headers: {
       Accept: 'application/vnd.github+json',
-      Authorization: `Bearer ${token}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       'X-GitHub-Api-Version': '2026-03-10',
       ...(options.body ? { 'Content-Type': 'application/json' } : {}),
     },
@@ -116,6 +120,10 @@ export async function githubFetch<T>(
     signal: AbortSignal.timeout(20_000),
   });
   if (!response.ok) {
+    if (response.status === 429 || response.headers.get('x-ratelimit-remaining') === '0')
+      throw new GitHubError(
+        'GitHub’s request limit was reached. Try again later or configure an authorized GitHub connection.',
+      );
     if ([401, 403, 404].includes(response.status))
       throw new GitHubError(
         'GitHub access was denied. Check your account, selected repositories, and repository permissions.',
@@ -127,8 +135,14 @@ export async function githubFetch<T>(
     throw new GitHubError('GitHub could not complete this request. Please try again.');
   }
   if (response.status === 204) return undefined as T;
-  return response.json() as Promise<T>;
+  const data = (await response.json()) as T;
+  if (!token) {
+    if (publicReads.size >= 200) publicReads.clear();
+    publicReads.set(path, { expires: Date.now() + 300_000, value: data });
+  }
+  return data;
 }
+const publicReads = new Map<string, { expires: number; value: unknown }>();
 export const repositoryPath = (repo: { owner: string; name: string }) =>
   `/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.name)}`;
 export async function readRepositoryFile(
@@ -187,6 +201,22 @@ export async function repositoryAccess(userId: string, projectId: string, write 
     where: eq(repositories.projectId, projectId),
   });
   if (!repo) throw new GitHubError('Connect a GitHub repository in project settings first.');
+  if (repo.accessMode === 'public') {
+    const [member] = await db
+      .select({ role: memberships.role })
+      .from(projects)
+      .innerJoin(
+        memberships,
+        and(eq(memberships.workspaceId, projects.workspaceId), eq(memberships.userId, userId)),
+      )
+      .where(eq(projects.id, projectId));
+    if (!member || (write && member.role === 'viewer'))
+      throw new GitHubError('You do not have permission to edit this workspace’s code.');
+    const remote = await githubFetch<GitHubRepository>('', repositoryPath(repo));
+    if (remote.private || String(remote.id) !== repo.repositoryId)
+      throw new GitHubError('This public repository is no longer available.');
+    return { repo, remote, token: '' };
+  }
   const token = await githubToken(userId);
   const remote = await githubFetch<GitHubRepository>(token, repositoryPath(repo));
   if (String(remote.id) !== repo.repositoryId || (write && !remote.permissions?.push))
@@ -205,10 +235,11 @@ export async function authorizeCodeSession(codeSessionId: string, sessionHash: s
       sessionId: codeSessions.id,
       repositoryId: repositories.repositoryId,
       githubId: githubAccounts.githubId,
+      accessMode: repositories.accessMode,
     })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
-    .innerJoin(githubAccounts, eq(githubAccounts.userId, users.id))
+    .leftJoin(githubAccounts, eq(githubAccounts.userId, users.id))
     .innerJoin(codeSessions, eq(codeSessions.id, codeSessionId))
     .innerJoin(projects, eq(projects.id, codeSessions.projectId))
     .innerJoin(repositories, eq(repositories.projectId, projects.id))
@@ -217,12 +248,16 @@ export async function authorizeCodeSession(codeSessionId: string, sessionHash: s
       and(eq(memberships.workspaceId, projects.workspaceId), eq(memberships.userId, users.id)),
     )
     .where(and(eq(sessions.tokenHash, sessionHash), gt(sessions.expiresAt, new Date())));
-  if (!row) throw new GitHubError('Access denied');
+  if (!row || (row.accessMode !== 'public' && !row.githubId))
+    throw new GitHubError('Access denied');
   const key = row.userId + ':' + row.projectId + ':' + row.repositoryId + ':' + row.githubId;
   let access = codeAccessCache.get(key);
   if (!access || access.expires < Date.now()) {
     const { remote } = await repositoryAccess(row.userId, row.projectId);
-    access = { expires: Date.now() + 30_000, write: Boolean(remote.permissions?.push) };
+    access = {
+      expires: Date.now() + 30_000,
+      write: row.accessMode === 'public' || Boolean(remote.permissions?.push),
+    };
     if (codeAccessCache.size > 1000) codeAccessCache.clear();
     codeAccessCache.set(key, access);
   }

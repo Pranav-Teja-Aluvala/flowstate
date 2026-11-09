@@ -1,5 +1,32 @@
 # Verification record
 
+## Light studio and native document update — 09 November 2026
+
+A live localhost check connected the real public `octocat/Hello-World` repository,
+opened its README, saved an edit to the FLOWSTATE copy and downloaded that copy
+without GitHub credentials. No remote repository write occurred. Synthetic test
+accounts/workspaces were removed afterward. This does not verify private GitHub
+App activation.
+
+The native document browser flow creates Word, Excel, PowerPoint and PDF work. It
+verifies two-client rich-text/cell/slide updates, spreadsheet formulas, saved-state
+reload, DOCX content XML, XLSX numbers/formulas/cached results, PPTX slide XML, PDF
+output, viewer read-only behavior and non-member/revoked export denial. These
+paths run without an Office engine. Native editors have the feature limits in
+[native documents](native-documents.md); they do not promise original-layout
+editing of arbitrary uploaded Office files.
+
+47 unit/integration tests pass. The separate code suite now includes both the
+private GitHub fixture flow and public URL connection with zero GitHub accounts.
+The light landing page is at `/`; public metadata/sitemap/robots and mobile
+overflow/accessibility checks were updated accordingly.
+
+The static light landing page, Privacy and Terms pages each measured 99 performance,
+100 accessibility, 100 best practices and 100 SEO in the local production audit,
+with zero axe WCAG A/AA violations. An earlier account-dependent landing render
+scored 76 performance; moving the public page to static rendering removed that
+loading delay. These are measured results, not a guarantee for every deployment.
+
 ## Version 2 — 09 November 2026
 
 The functional baseline passed all three GitHub Actions jobs on commit `755c869`:

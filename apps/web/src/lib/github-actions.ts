@@ -108,6 +108,48 @@ export async function connectRepository(_state: ActionState, form: FormData): Pr
   revalidatePath('/');
   return { success: 'Repository connected.' };
 }
+export async function connectPublicRepository(
+  _state: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  try {
+    const { project, user } = await projectAccess(form, 'manage');
+    const requested = githubRepositoryURL(z.string().max(300).parse(field(form, 'repositoryURL')));
+    const remote = await githubFetch<GitHubRepository>('', repositoryPath(requested));
+    if (remote.private || !remote.id || !remote.default_branch)
+      throw new GitHubError(
+        'Choose an available public GitHub repository. Private repositories require GitHub authorization.',
+      );
+    await db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${project.id}))`);
+      if (await tx.query.repositories.findFirst({ where: eq(repositories.projectId, project.id) }))
+        throw new GitHubError(
+          'This project already has a repository. Disconnect it before linking another.',
+        );
+      await tx.insert(repositories).values({
+        projectId: project.id,
+        repositoryId: String(remote.id),
+        installationId: '0',
+        accessMode: 'public',
+        owner: remote.owner.login,
+        name: remote.name,
+        defaultBranch: remote.default_branch,
+        connectedBy: user.id,
+      });
+      await tx.insert(activityEvents).values({
+        workspaceId: project.workspaceId,
+        actorId: user.id,
+        action: 'repository.connected',
+        objectType: 'project',
+        objectId: project.id,
+      });
+    });
+    revalidatePath('/');
+    return { success: 'Public repository connected. Start a code session to edit a shared copy.' };
+  } catch (error) {
+    return failure(error);
+  }
+}
 export async function disconnectRepository(
   _state: ActionState,
   form: FormData,
@@ -209,6 +251,10 @@ export async function publishPullRequest(
   try {
     const { project, user } = await projectAccess(form, 'write');
     const { repo, token } = await repositoryAccess(user.id, project.id, true);
+    if (repo.accessMode === 'public')
+      throw new GitHubError(
+        'This connection edits a shared copy of public code. Configure GitHub authorization to publish, or download your changed files.',
+      );
     const sessionId = z.uuid().parse(field(form, 'sessionId'));
     const title = z.string().trim().min(1).max(150).parse(field(form, 'title'));
     const session = await db.query.codeSessions.findFirst({

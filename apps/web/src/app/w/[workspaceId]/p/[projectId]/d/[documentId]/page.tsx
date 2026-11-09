@@ -11,6 +11,7 @@ import { ActionForm, Dialog } from '@/components/forms';
 import { CollaborativeEditor } from '@/components/editor';
 import { Shell } from '@/components/shell';
 import { DocumentExport } from '@/components/document-export';
+import { StructuredStudio } from '@/components/structured-studio';
 export default async function DocumentPage({
   params,
 }: {
@@ -46,11 +47,32 @@ export default async function DocumentPage({
         </Link>
         <section className="page-heading">
           <div>
-            <p className="eyebrow">THINK ON THE SAME PAGE</p>
+            <p className="eyebrow">
+              {(
+                {
+                  richtext: 'SHARED DOCUMENT',
+                  word: 'WORD DOCUMENT',
+                  sheet: 'EXCEL SPREADSHEET',
+                  slides: 'POWERPOINT PRESENTATION',
+                  pdf: 'PDF DOCUMENT',
+                } as Record<string, string>
+              )[document.kind] || 'SHARED DOCUMENT'}
+            </p>
             <h1>{document.title}</h1>
           </div>
           <div className="document-actions">
-            <DocumentExport />
+            <a
+              className="button secondary"
+              href={`/api/v1/documents/${documentId}/export?format=${document.kind === 'sheet' ? 'xlsx' : document.kind === 'slides' ? 'pptx' : 'docx'}`}
+            >
+              Download{' '}
+              {document.kind === 'sheet'
+                ? 'Excel'
+                : document.kind === 'slides'
+                  ? 'PowerPoint'
+                  : 'Word'}
+            </a>
+            <DocumentExport title={document.title} />
             {canWrite(workspace.role) && (
               <Dialog title="Rename document" trigger="Rename">
                 <ActionForm action={renameDocument} label="Rename document">
@@ -64,11 +86,20 @@ export default async function DocumentPage({
             )}
           </div>
         </section>
-        <CollaborativeEditor
-          documentId={documentId}
-          user={user}
-          editable={canWrite(workspace.role)}
-        />
+        {document.kind === 'sheet' || document.kind === 'slides' ? (
+          <StructuredStudio
+            user={user}
+            documentId={documentId}
+            kind={document.kind}
+            editable={canWrite(workspace.role)}
+          />
+        ) : (
+          <CollaborativeEditor
+            documentId={documentId}
+            user={user}
+            editable={canWrite(workspace.role)}
+          />
+        )}
       </main>
     </Shell>
   );

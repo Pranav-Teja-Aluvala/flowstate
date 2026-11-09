@@ -215,6 +215,9 @@ export function SharedCodeEditor({
     <section className="shared-code">
       <header>
         <strong>{path}</strong>
+        <a href={`/api/v1/code/files/${fileId}/download`} className="code-download">
+          Download saved file
+        </a>
         <span role="status">{status}</span>
       </header>
       <div className="code-presence">

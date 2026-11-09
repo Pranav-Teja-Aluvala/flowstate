@@ -131,11 +131,13 @@ export function Dialog({
   trigger,
   children,
   destructive = false,
+  wide = false,
 }: {
   title: string;
   trigger: string;
   children: React.ReactNode;
   destructive?: boolean;
+  wide?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const notify = useContext(Notify);
@@ -158,6 +160,7 @@ export function Dialog({
       </button>
       {open && (
         <dialog
+          className={wide ? 'wide-dialog' : undefined}
           open
           aria-modal="true"
           aria-label={title}

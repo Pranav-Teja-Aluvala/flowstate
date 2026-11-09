@@ -7,6 +7,7 @@ import { requireUser } from '@/lib/auth';
 import { userWorkspaces } from '@/lib/queries';
 import { Shell } from '@/components/shell';
 import { FileUpload } from '@/components/file-upload';
+import { NewDocument } from '@/components/new-document';
 export default async function ProjectFiles({
   params,
 }: {
@@ -61,6 +62,7 @@ export default async function ProjectFiles({
               format.
             </p>
           </div>
+          {canWrite(workspace.role) && <NewDocument projectId={projectId} />}
         </section>
         {canWrite(workspace.role) && <FileUpload projectId={projectId} />}
         <section className="settings-card">

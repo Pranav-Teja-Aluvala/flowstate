@@ -16,8 +16,9 @@ import { canWrite } from '@flowstate/contracts';
 import { requireUser } from '@/lib/auth';
 import { userWorkspaces } from '@/lib/queries';
 import { Shell } from '@/components/shell';
+import { NewDocument } from '@/components/new-document';
 import { ActionForm, Dialog } from '@/components/forms';
-import { createBoard, createColumn, createDocument } from '@/lib/work-actions';
+import { createBoard, createColumn } from '@/lib/work-actions';
 import { Kanban } from '@/components/kanban';
 export default async function Project({
   params,
@@ -92,12 +93,16 @@ export default async function Project({
             </h1>
             <p className="muted">{project.description || 'A fresh space for your next idea.'}</p>
           </div>
-          <Link className="button secondary" href={`/w/${workspaceId}/p/${projectId}/settings`}>
-            Project settings
-          </Link>
+          <div className="document-actions">
+            {canWrite(workspace.role) && <NewDocument projectId={projectId} />}
+            <Link className="button secondary" href={`/w/${workspaceId}/p/${projectId}/settings`}>
+              Project settings
+            </Link>
+          </div>
         </section>
         <nav className="project-navigation" aria-label="Project areas">
           <span aria-current="page">Overview</span>
+          <a href="#documents">Documents</a>
           <Link href={`/w/${workspaceId}/p/${projectId}/files`}>Files</Link>
           <Link href={`/w/${workspaceId}/p/${projectId}/code`}>
             Code & GitHub <ArrowUpRight size={14} />
@@ -154,30 +159,34 @@ export default async function Project({
             <p>Create a board, then add columns for the way your team works.</p>
           </section>
         )}
-        <section className="documents-section">
+        <section className="documents-section" id="documents">
           <div className="section-heading">
             <h2>
               <FileText size={17} />
               Documents <span>{projectDocuments.length}</span>
             </h2>
-            {canWrite(workspace.role) && (
-              <Dialog title="Create a document" trigger="New document">
-                <ActionForm action={createDocument} label="Create document">
-                  <input type="hidden" name="projectId" value={projectId} />
-                  <label>
-                    Document title
-                    <input name="title" required maxLength={80} />
-                  </label>
-                </ActionForm>
-              </Dialog>
-            )}
           </div>
           {projectDocuments.length ? (
             <div className="document-list">
               {projectDocuments.map((document) => (
-                <Link key={document.id} href={`/w/${workspaceId}/p/${projectId}/d/${document.id}`}>
+                <Link
+                  key={document.id}
+                  aria-label={document.title}
+                  href={`/w/${workspaceId}/p/${projectId}/d/${document.id}`}
+                >
                   <FileText size={19} />
                   <span>{document.title}</span>
+                  <small className="pill">
+                    {(
+                      {
+                        richtext: 'Document',
+                        word: 'Word',
+                        sheet: 'Excel',
+                        slides: 'PowerPoint',
+                        pdf: 'PDF',
+                      } as Record<string, string>
+                    )[document.kind] || 'Document'}
+                  </small>
                   <ArrowUpRight size={17} />
                 </Link>
               ))}

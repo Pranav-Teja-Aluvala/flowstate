@@ -1,16 +1,8 @@
 import Link from 'next/link';
-import {
-  Layers2,
-  ArrowUpRight,
-  FolderKanban,
-  LogOut,
-  Plus,
-  ChevronDown,
-  Settings2,
-  CircleHelp,
-} from 'lucide-react';
+import { Layers2, LogOut, Plus, ChevronDown, CircleHelp } from 'lucide-react';
 import { logout } from '@/lib/actions';
 import { WorkspacePresence } from './workspace-presence';
+import { ShellNavigation } from './shell-nav';
 type Workspace = { id: string; name: string };
 export function Shell({
   user,
@@ -30,7 +22,7 @@ export function Shell({
         Skip to workspace
       </a>
       <aside className="sidebar">
-        <Link href="/" className="brand">
+        <Link href="/app" className="brand">
           <Layers2 size={23} />
           FLOWSTATE
           <span className="brand-dot" />
@@ -50,35 +42,15 @@ export function Shell({
                 {w.name}
               </Link>
             ))}
-            <Link href="/?new=1">
+            <Link href="/app?new=1">
               <Plus size={14} />
               Create a workspace
             </Link>
           </div>
         </details>
         <div className="nav-label">WORKSPACE</div>
-        <nav>
-          <Link className="nav-link active" href={active ? `/w/${active}` : '/'}>
-            <FolderKanban size={18} />
-            Projects <span className="nav-indicator" />
-          </Link>
-          {active && (
-            <Link className="nav-link" href={`/w/${active}/settings`}>
-              <Settings2 size={18} />
-              Members & settings
-            </Link>
-          )}
-        </nav>
+        <ShellNavigation workspaceId={active} />
         {active && <WorkspacePresence key={active} workspaceId={active} />}
-        <div className="sidebar-note">
-          <span className="note-line" />
-          <p>
-            A little less scattered.
-            <br />
-            <strong>A little more in sync.</strong>
-          </p>
-          <ArrowUpRight size={19} />
-        </div>
         <div className="sidebar-bottom">
           <div className="help-link">
             <CircleHelp size={16} />

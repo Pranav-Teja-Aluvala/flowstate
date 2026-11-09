@@ -41,10 +41,13 @@ test('creation dialogs close on success, stay on validation errors, and deletion
   await page.getByLabel('Document title').fill('Shared brief');
   await page.getByRole('button', { name: 'Create document', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Shared brief', exact: true })).toBeVisible();
+  await page.goto(projectUrl);
   await expect(page.getByRole('link', { name: 'Shared brief', exact: true })).toBeVisible();
   await page.getByRole('link', { name: /Code & GitHub/ }).click();
   await expect(page.getByRole('heading', { name: 'Code, together.' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Connect your GitHub account' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Start with a repository URL.' })).toBeVisible();
+  await expect(page.getByLabel('Public GitHub repository URL')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Create branch & pull request' })).toHaveCount(0);
   await page.goto(`${projectUrl}/settings`);
   await expect(page.getByRole('heading', { name: 'Danger zone' })).toBeVisible();

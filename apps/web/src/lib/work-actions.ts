@@ -2,6 +2,8 @@
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import * as Y from 'yjs';
+import { randomUUID } from 'node:crypto';
 import {
   db,
   boards,
@@ -9,6 +11,7 @@ import {
   tasks,
   projects,
   documents,
+  documentStates,
   memberships,
   activityEvents,
   workspaceNotes,
@@ -304,15 +307,29 @@ export async function moveTask(input: {
   return { success: 'Task moved.' };
 }
 export async function createDocument(_state: ActionState, form: FormData): Promise<ActionState> {
+  let destination: string | undefined;
   try {
     const projectId = uuid(form, 'projectId');
     const { user, project } = await projectAccess(projectId);
     const title = nameSchema.parse(value(form, 'title'));
-    await db.transaction(async (tx) => {
+    const kind = z
+      .enum(['richtext', 'word', 'sheet', 'slides', 'pdf'])
+      .parse(value(form, 'kind') || 'richtext');
+    const createdId = await db.transaction(async (tx) => {
       const [created] = await tx
         .insert(documents)
-        .values({ projectId, createdBy: user.id, title })
+        .values({ projectId, createdBy: user.id, title, kind })
         .returning();
+      if (kind === 'slides') {
+        const state = new Y.Doc();
+        const slideId = randomUUID();
+        state.getArray<string>('slides').push([slideId]);
+        state.getMap<string>('studio').set(`${slideId}:title`, title);
+        await tx
+          .insert(documentStates)
+          .values({ documentId: created.id, yjsState: Buffer.from(Y.encodeStateAsUpdate(state)) });
+        state.destroy();
+      }
       await tx.insert(activityEvents).values({
         workspaceId: project.workspaceId,
         actorId: user.id,
@@ -320,12 +337,14 @@ export async function createDocument(_state: ActionState, form: FormData): Promi
         objectType: 'document',
         objectId: created.id,
       });
+      return created.id;
     });
+    destination = `/w/${project.workspaceId}/p/${project.id}/d/${createdId}`;
   } catch (error) {
     return failure(error);
   }
   revalidatePath('/');
-  return { success: 'Document created.' };
+  return { success: 'Document created.', ...(destination ? { redirectTo: destination } : {}) };
 }
 export async function renameDocument(_state: ActionState, form: FormData): Promise<ActionState> {
   try {

@@ -50,7 +50,25 @@ export default async function FileStudio({
             <FileExport fileId={fileId} name={access.file.name} />
           </div>
         </section>
-        <OfficeEditor key={access.file.version} fileId={fileId} />
+        {process.env.OFFICE_JWT_SECRET && process.env.OFFICE_PUBLIC_URL ? (
+          <OfficeEditor key={access.file.version} fileId={fileId} />
+        ) : (
+          <section className="settings-card integration-unavailable">
+            <h2>Keep working with this file.</h2>
+            <p className="muted">
+              You can download the original file and its saved versions here. Editing an uploaded
+              Office/PDF file while keeping its original layout needs a connected Office editor,
+              which is not configured on this instance.
+            </p>
+            <p className="muted">
+              To start a new Word document, spreadsheet, presentation, or PDF without additional
+              setup, use New document in your project.
+            </p>
+            <Link className="button primary" href={`/w/${workspaceId}/p/${projectId}`}>
+              Create a document in FLOWSTATE →
+            </Link>
+          </section>
+        )}
         <p className="muted small">
           Exports use the latest saved version. Close every office editor and wait for save-back
           before exporting.

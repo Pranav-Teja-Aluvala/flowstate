@@ -154,6 +154,7 @@ export const documents = pgTable('documents', {
     .notNull()
     .references(() => projects.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
+  kind: text('kind').notNull().default('richtext'),
   createdBy: uuid('created_by')
     .notNull()
     .references(() => users.id),
@@ -194,6 +195,7 @@ export const repositories = pgTable('repositories', {
     .primaryKey()
     .references(() => projects.id, { onDelete: 'cascade' }),
   repositoryId: text('repository_id').notNull(),
+  accessMode: text('access_mode').notNull().default('app'),
   installationId: text('installation_id').notNull(),
   owner: text('owner').notNull(),
   name: text('name').notNull(),
