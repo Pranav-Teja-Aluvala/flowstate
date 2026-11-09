@@ -1,0 +1,1 @@
+ALTER TABLE "code_files" ADD COLUMN "mode" text DEFAULT '100644' NOT NULL;

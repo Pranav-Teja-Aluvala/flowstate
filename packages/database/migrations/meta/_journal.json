@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794154612501,
+      "tag": "0000_freezing_daimon_hellstrom",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794154636224,
+      "tag": "0001_lowly_blob",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794158851968,
+      "tag": "0002_gray_meltdown",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794159049630,
+      "tag": "0003_outgoing_living_lightning",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794169114438,
+      "tag": "0004_strong_praxagora",
+      "breakpoints": true
+    }
+  ]
+}

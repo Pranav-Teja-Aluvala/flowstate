@@ -1,0 +1,8 @@
+{$FLOWSTATE_DOMAIN} {
+    handle /collaboration* {
+        reverse_proxy collaboration:1234
+    }
+    handle {
+        reverse_proxy web:3000
+    }
+}
