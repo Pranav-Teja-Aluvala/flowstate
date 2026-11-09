@@ -101,12 +101,14 @@ test('customer journey: starter project, assigned task, document library, invita
     if (await dismiss.count()) await dismiss.click();
     await page.screenshot({ path: '.local/product-documents.png', fullPage: true });
     await page.setViewportSize({ width: 320, height: 760 });
+    await page.locator('.workspace-switch > summary').click();
     await expect(
       page.getByRole('link', { name: 'Help & getting started', exact: true }),
     ).toBeVisible();
     await expect
       .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
       .toBeLessThanOrEqual(320);
+    await page.locator('.workspace-switch > summary').click();
     await page.setViewportSize({ width: 390, height: 844 });
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),

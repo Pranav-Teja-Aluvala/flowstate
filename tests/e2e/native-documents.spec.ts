@@ -177,6 +177,9 @@ test('native Word, Excel, PowerPoint and PDF creation, shared edits, real export
       .fill('A document we created together, ready to share.');
     await expect(a.getByTestId('save-status')).toHaveText('Saved to database');
     await a.emulateMedia({ media: 'print' });
+    const printable = await a.locator('.main-panel').boundingBox();
+    expect(printable?.x).toBe(0);
+    expect(printable?.width).toBe(await a.evaluate(() => document.documentElement.clientWidth));
     const output = await a.pdf({ path: '.local/native-created.pdf', preferCSSPageSize: true });
     expect(output.subarray(0, 5).toString()).toBe('%PDF-');
     await a.emulateMedia({ media: 'screen' });

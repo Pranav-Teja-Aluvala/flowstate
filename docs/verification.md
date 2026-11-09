@@ -1,5 +1,21 @@
 # Verification record
 
+## Activity and readability update — 10 November 2026
+
+The new activity browser flow verifies that the feed is absent from the workspace
+home and settings, has its own selected navigation item, paginates past 25 events,
+filters tasks and uploaded/native document events, and scopes history to workspace
+membership. Viewers can read the timeline; a member of another workspace cannot.
+It passes axe WCAG A/AA checks at desktop and phone widths and checks overflow at
+320px, 390px and 768px. Activity rows use human-readable labels and explicit IST times.
+
+49 unit/integration tests and all 12 local browser flows (9 core, 2 GitHub, 1 Office
+contract) pass. Type checks, lint, formatting and the production build pass.
+Manrope is bundled through `next/font/local`, with its font license retained.
+The production audit measured 98 performance and 100 accessibility, best practices
+and SEO on the landing, Privacy and Terms pages, with zero axe violations. The
+production dependency audit found zero known vulnerabilities.
+
 ## Customer-flow update — 09 November 2026
 
 49 unit/integration tests pass, including safe authentication return destinations.

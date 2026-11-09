@@ -174,13 +174,13 @@ export function SharedCodeEditor({
               }),
               EditorView.theme({
                 '&': {
-                  fontSize: '13px',
+                  fontSize: '15px',
                   minHeight: '420px',
-                  backgroundColor: '#f8f5ec',
-                  color: '#30352c',
+                  backgroundColor: '#ffffff',
+                  color: '#172b4d',
                 },
                 '.cm-content': { fontFamily: 'Consolas, monospace', padding: '20px 0' },
-                '.cm-gutters': { backgroundColor: '#eeeae0', color: '#626b57', border: 'none' },
+                '.cm-gutters': { backgroundColor: '#eef2fa', color: '#52617a', border: 'none' },
                 '.cm-scroller': { overflow: 'auto' },
               }),
             ],

@@ -49,8 +49,8 @@ export function SharedTerminal({
           disableStdin: !editable,
           convertEol: true,
           fontFamily: 'Consolas, monospace',
-          fontSize: 13,
-          theme: { background: '#202a24', foreground: '#dce6d3', cursor: '#a8c28f' },
+          fontSize: 15,
+          theme: { background: '#11233c', foreground: '#edf2fc', cursor: '#8eafff' },
         });
         const addon = new FitAddon();
         term.loadAddon(addon);

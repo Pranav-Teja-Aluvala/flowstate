@@ -28,7 +28,7 @@ export function Shell({
           <span className="brand-dot" />
         </Link>
         <details className="workspace-switch">
-          <summary>
+          <summary title={current?.name || 'Your workspaces'}>
             <span className="workspace-icon">{current?.name.slice(0, 1).toUpperCase() || 'F'}</span>
             <span>
               {current?.name || 'Your workspaces'}
@@ -46,6 +46,19 @@ export function Shell({
               <Plus size={14} />
               Create a workspace
             </Link>
+            <div className="mobile-account">
+              <p>{user.name}</p>
+              <Link href={active ? `/help?workspace=${active}` : '/help'}>
+                <CircleHelp size={16} />
+                Help & getting started
+              </Link>
+              <form action={logout}>
+                <button className="mobile-signout" aria-label="Sign out">
+                  <LogOut size={16} />
+                  Sign out
+                </button>
+              </form>
+            </div>
           </div>
         </details>
         <div className="nav-label">WORKSPACE</div>

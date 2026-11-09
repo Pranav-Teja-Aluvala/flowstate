@@ -3,16 +3,16 @@
 @source "../components";
 :root {
   color-scheme: light;
-  --paper: #f7f5f0;
+  --paper: #f7f5ef;
   --surface: #ffffff;
   --surface-hover: #efede7;
-  --ink: #1b1b18;
-  --muted: #666358;
+  --ink: #172b4d;
+  --muted: #52617a;
   --line: #dedbd1;
-  --accent: #2b44c7;
+  --accent: #245beb;
   --green: var(--accent);
-  --lime: #2b44c7;
-  --sidebar: #f0eee8;
+  --lime: var(--accent);
+  --sidebar: #172b4d;
 }
 .workspace-presence {
   margin: 20px 0;
@@ -42,12 +42,7 @@ body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
-  font-family:
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Arial,
-    sans-serif;
+  font-family: var(--font-ui), system-ui, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 a {
@@ -1678,7 +1673,7 @@ dialog {
   --code-ink: #e6e8ee;
 }
 body {
-  font-size: 14px;
+  font-size: 16px;
 }
 .button {
   min-height: 42px;

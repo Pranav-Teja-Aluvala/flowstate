@@ -2,13 +2,24 @@
 
 **A little more together.**
 
-This update brings a light paper-and-cobalt interface, a real landing page at `/`,
+This update brings an ivory workspace, navy navigation and bright blue accents,
+larger self-hosted Manrope typography, a real landing page at `/`,
 document creation without an Office server, and a clearer path from first project
 to team collaboration. See the [customer flow](docs/product-flow.md).
 
 ![FLOWSTATE version 2, running locally](docs/screenshots/workspace-desktop.png)
 
 ## What changed
+
+**Activity now has its own page.** The feed has been removed from the workspace
+home and settings. Use Activity in workspace navigation for date groups, type
+filters and older/newer history. Existing activity records are preserved.
+
+The interface uses 16px body text, larger labels and controls, and clearer heading
+sizes. Electric blue marks buttons, selected tabs, links and important highlights.
+The font is served locally; its [OFL license](LICENSES/Manrope-OFL.txt) is included.
+
+![Workspace activity](docs/screenshots/activity-desktop.png)
 
 Projects now open with optional starter columns. Invitation signup returns to the
 team invitation. Assigned tasks link to the right board, Documents has search and

@@ -52,7 +52,8 @@ export default async function Help({
               Add tasks to a board column, assign a teammate and set a priority. Assigned tasks
               appear on their workspace home. In Documents, choose Word, Excel, PowerPoint or PDF.
               Everyone with edit access can work on the same document; viewers can read and
-              download.
+              download. Open Activity in workspace navigation for the team’s timeline. Filter by
+              tasks, documents, team updates or code, and page through older events.
             </p>
           </li>
           <li>

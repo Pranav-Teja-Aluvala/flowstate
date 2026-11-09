@@ -8,7 +8,6 @@ import {
   memberships,
   workspaceNotes,
   users,
-  activityEvents,
   tasks,
   columns,
   boards,
@@ -26,7 +25,7 @@ export default async function Workspace({ params }: { params: Promise<{ workspac
   const spaces = await userWorkspaces(user.id);
   const workspace = spaces.find((w) => w.id === workspaceId);
   if (!workspace) notFound();
-  const [items, members, notes, activity, summary, assignedTasks] = await Promise.all([
+  const [items, members, notes, summary, assignedTasks] = await Promise.all([
     db
       .select()
       .from(projects)
@@ -48,18 +47,6 @@ export default async function Workspace({ params }: { params: Promise<{ workspac
       .where(eq(workspaceNotes.workspaceId, workspaceId))
       .orderBy(desc(workspaceNotes.createdAt))
       .limit(20),
-    db
-      .select({
-        id: activityEvents.id,
-        action: activityEvents.action,
-        actor: users.name,
-        createdAt: activityEvents.createdAt,
-      })
-      .from(activityEvents)
-      .innerJoin(users, eq(activityEvents.actorId, users.id))
-      .where(eq(activityEvents.workspaceId, workspaceId))
-      .orderBy(desc(activityEvents.createdAt))
-      .limit(8),
     db
       .select({
         total: sql<number>`count(*)::int`,
@@ -242,25 +229,6 @@ export default async function Workspace({ params }: { params: Promise<{ workspac
                 </ol>
               ) : (
                 <p className="muted">A place for your team’s decisions and updates.</p>
-              )}
-            </section>
-            <section className="settings-card">
-              <h2>Recent activity</h2>
-              {activity.length ? (
-                <ol className="team-notes">
-                  {activity.map((event) => (
-                    <li key={event.id}>
-                      <p>
-                        {event.actor} · {event.action.replaceAll('.', ' ')}
-                      </p>
-                      <small>
-                        {event.createdAt.toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' })}
-                      </small>
-                    </li>
-                  ))}
-                </ol>
-              ) : (
-                <p className="muted">Workspace activity will appear here as your team works.</p>
               )}
             </section>
           </aside>

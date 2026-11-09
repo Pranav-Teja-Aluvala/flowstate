@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
-import { asc, desc, eq } from 'drizzle-orm';
-import { db, memberships, users, activityEvents } from '@flowstate/database';
+import { asc, eq } from 'drizzle-orm';
+import { db, memberships, users } from '@flowstate/database';
 import { canManage } from '@flowstate/contracts';
 import { requireUser } from '@/lib/auth';
 import { userWorkspaces } from '@/lib/queries';
@@ -19,18 +19,6 @@ export default async function Settings({ params }: { params: Promise<{ workspace
     .innerJoin(users, eq(users.id, memberships.userId))
     .where(eq(memberships.workspaceId, workspaceId))
     .orderBy(asc(memberships.createdAt));
-  const events = await db
-    .select({
-      id: activityEvents.id,
-      action: activityEvents.action,
-      name: users.name,
-      createdAt: activityEvents.createdAt,
-    })
-    .from(activityEvents)
-    .innerJoin(users, eq(users.id, activityEvents.actorId))
-    .where(eq(activityEvents.workspaceId, workspaceId))
-    .orderBy(desc(activityEvents.createdAt))
-    .limit(15);
   const manageable = canManage(workspace.role);
   return (
     <Shell user={user} workspaces={spaces} active={workspaceId}>
@@ -128,22 +116,6 @@ export default async function Settings({ params }: { params: Promise<{ workspace
             </section>
           </div>
         )}
-        <section className="settings-card">
-          <h2>Recent activity</h2>
-          <div className="activity-list">
-            {events.map((event) => (
-              <div key={event.id}>
-                <span>
-                  <strong>{event.name}</strong> ·{' '}
-                  {event.action.replaceAll('.', ' ').replaceAll('_', ' ')}
-                </span>
-                <time>
-                  {event.createdAt.toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' })} IST
-                </time>
-              </div>
-            ))}
-          </div>
-        </section>
         {workspace.role === 'owner' && (
           <details className="settings-card danger">
             <summary>Delete workspace</summary>

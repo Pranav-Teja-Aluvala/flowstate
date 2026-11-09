@@ -1,12 +1,14 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FolderKanban, Settings2 } from 'lucide-react';
+import { FolderKanban, Settings2, Activity } from 'lucide-react';
 export function ShellNavigation({ workspaceId }: { workspaceId?: string }) {
   const path = usePathname();
   const settings = workspaceId ? `/w/${workspaceId}/settings` : '';
   const inSettings = path === settings;
-  const inProjects = !inSettings && path !== '/help';
+  const activity = workspaceId ? `/w/${workspaceId}/activity` : '';
+  const inActivity = path === activity;
+  const inProjects = !inSettings && !inActivity && path !== '/help';
   return (
     <nav aria-label="Workspace navigation">
       <Link
@@ -19,12 +21,24 @@ export function ShellNavigation({ workspaceId }: { workspaceId?: string }) {
       </Link>
       {workspaceId && (
         <Link
+          className={inActivity ? 'nav-link active' : 'nav-link'}
+          aria-current={inActivity ? 'page' : undefined}
+          href={activity}
+        >
+          <Activity size={18} />
+          Activity
+        </Link>
+      )}
+      {workspaceId && (
+        <Link
           className={inSettings ? 'nav-link active' : 'nav-link'}
           aria-current={inSettings ? 'page' : undefined}
           href={settings}
+          aria-label="Members & settings"
         >
           <Settings2 size={18} />
-          Members & settings
+          <span className="nav-label-full">Members & settings</span>
+          <span className="nav-label-short">Members</span>
         </Link>
       )}
     </nav>
