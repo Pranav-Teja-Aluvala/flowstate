@@ -1,11 +1,13 @@
 import Link from 'next/link';
 import { Layers2 } from 'lucide-react';
-import { requireUser } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { currentUser } from '@/lib/auth';
 import { acceptInvite } from '@/lib/actions';
 import { ActionForm } from '@/components/forms';
 export default async function Join({ params }: { params: Promise<{ token: string }> }) {
-  const user = await requireUser();
   const { token } = await params;
+  const user = await currentUser();
+  if (!user) redirect(`/login?next=${encodeURIComponent(`/join/${token}`)}`);
   return (
     <main className="join-page">
       <Link className="brand" href="/">
@@ -21,7 +23,7 @@ export default async function Join({ params }: { params: Promise<{ token: string
         <ActionForm action={acceptInvite} label="Join workspace">
           <input type="hidden" name="token" value={token} />
         </ActionForm>
-        <Link className="back-link" href="/">
+        <Link className="back-link" href="/app">
           Back to your workspaces
         </Link>
       </section>

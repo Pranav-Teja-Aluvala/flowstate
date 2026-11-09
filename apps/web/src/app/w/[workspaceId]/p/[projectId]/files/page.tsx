@@ -1,3 +1,4 @@
+import { ProjectNavigation } from '@/components/project-navigation';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { and, desc, eq, sql } from 'drizzle-orm';
@@ -22,6 +23,7 @@ export default async function ProjectFiles({
     where: and(eq(projects.id, projectId), eq(projects.workspaceId, workspaceId)),
   });
   if (!project) notFound();
+  const officeAvailable = Boolean(process.env.OFFICE_JWT_SECRET && process.env.OFFICE_PUBLIC_URL);
   const files = await db
     .select({
       id: projectFiles.id,
@@ -64,6 +66,12 @@ export default async function ProjectFiles({
           </div>
           {canWrite(workspace.role) && <NewDocument projectId={projectId} />}
         </section>
+        <ProjectNavigation workspaceId={workspaceId} projectId={projectId} active="files" />
+        <p className="capability-note">
+          {officeAvailable
+            ? 'Office editing is connected. Open a supported file to edit with your team.'
+            : 'Uploads keep their original format. Office editing is not connected here; you can download files or create a shared document in Documents.'}
+        </p>
         {canWrite(workspace.role) && <FileUpload projectId={projectId} />}
         <section className="settings-card">
           <h2>
@@ -82,7 +90,7 @@ export default async function ProjectFiles({
                       className="button secondary"
                       href={`/w/${workspaceId}/p/${projectId}/files/${file.id}`}
                     >
-                      Open editor
+                      {officeAvailable ? 'Open editor' : 'File details'}
                     </Link>
                   )}
                 </li>

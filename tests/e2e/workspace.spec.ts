@@ -29,11 +29,11 @@ test('board ordering persists and two authorized users edit one rich-text docume
   await owner.getByRole('button', { name: 'Create project' }).click();
   await expect(owner.getByText('Project saved.')).toBeVisible();
   await expect(owner.getByRole('dialog')).toHaveCount(0);
-  await owner.getByRole('link', { name: /Studio launch/ }).click();
   await expect(owner).toHaveURL(/\/p\/[a-f0-9-]+$/);
   const projectUrl = owner.url();
   await owner.getByRole('button', { name: 'New board' }).click();
   await owner.getByLabel('Board name').fill('Launch roadmap');
+  await owner.getByLabel('Use starter columns').uncheck();
   await owner.getByRole('button', { name: 'Create board', exact: true }).click();
   await expect(owner.getByText('Board created.')).toBeVisible();
   await expect(owner.getByRole('dialog')).toHaveCount(0);

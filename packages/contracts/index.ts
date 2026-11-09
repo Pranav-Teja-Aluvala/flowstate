@@ -1,5 +1,6 @@
 import { z } from 'zod';
 export * from './spreadsheet';
+export * from './auth-return';
 // CodeMirror and y-codemirror use LF positions. Normalize at every text boundary.
 export const normalizeCodeText = (content: string) => content.replace(/\r\n?/g, '\n');
 export function repositoryCodeText(content: string, original: string) {

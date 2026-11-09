@@ -42,9 +42,9 @@ export async function CodeReviewPanel({
     : [];
   const snapshot = fileId && canWrite(role) ? await codeSnapshot(fileId) : null;
   return (
-    <section className="review-studio" aria-label="Code review">
+    <section className="review-studio" aria-label="Code review" id="code-review">
       <div className="section-heading">
-        <h2>Discuss. Review. Refine.</h2>
+        <h2>Review & discussion</h2>
       </div>
       <p className="muted small">
         Suggestions are separate from live edits. Workspace owners and admins review and apply them;

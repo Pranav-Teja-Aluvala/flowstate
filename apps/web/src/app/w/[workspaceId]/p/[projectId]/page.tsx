@@ -1,3 +1,4 @@
+import { ProjectNavigation } from '@/components/project-navigation';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { and, asc, eq, inArray } from 'drizzle-orm';
@@ -12,7 +13,7 @@ import {
   memberships,
   users,
 } from '@flowstate/database';
-import { canWrite } from '@flowstate/contracts';
+import { canWrite, canManage } from '@flowstate/contracts';
 import { requireUser } from '@/lib/auth';
 import { userWorkspaces } from '@/lib/queries';
 import { Shell } from '@/components/shell';
@@ -25,7 +26,7 @@ export default async function Project({
   searchParams,
 }: {
   params: Promise<{ workspaceId: string; projectId: string }>;
-  searchParams: Promise<{ board?: string }>;
+  searchParams: Promise<{ board?: string; task?: string }>;
 }) {
   const { workspaceId, projectId } = await params;
   const user = await requireUser();
@@ -49,7 +50,8 @@ export default async function Project({
       .innerJoin(memberships, eq(memberships.userId, users.id))
       .where(eq(memberships.workspaceId, workspaceId)),
   ]);
-  const selectedBoardId = (await searchParams).board;
+  const query = await searchParams;
+  const selectedBoardId = query.board;
   const board = projectBoards.find((b) => b.id === selectedBoardId) || projectBoards[0];
   const boardColumns = board
     ? await db
@@ -100,15 +102,31 @@ export default async function Project({
             </Link>
           </div>
         </section>
-        <nav className="project-navigation" aria-label="Project areas">
-          <span aria-current="page">Overview</span>
-          <a href="#documents">Documents</a>
-          <Link href={`/w/${workspaceId}/p/${projectId}/files`}>Files</Link>
-          <Link href={`/w/${workspaceId}/p/${projectId}/code`}>
-            Code & GitHub <ArrowUpRight size={14} />
-          </Link>
-        </nav>
-        <div className="project-controls">
+        <ProjectNavigation workspaceId={workspaceId} projectId={projectId} active="boards" />
+        {canWrite(workspace.role) &&
+          !projectDocuments.length &&
+          !boardTasks.length &&
+          projectBoards.length <= 1 && (
+            <section className="project-start" aria-label="Project getting started">
+              <div>
+                <p className="eyebrow">START HERE</p>
+                <h2>Make this project yours.</h2>
+                <p>
+                  Plan the next step or create a document. Your team can join whenever you’re ready.
+                </p>
+              </div>
+              <div>
+                <a href="#task-board">1. Plan your first task →</a>
+                <Link href={`/w/${workspaceId}/p/${projectId}/documents`}>
+                  2. Create a shared document →
+                </Link>
+                <Link href={`/w/${workspaceId}/settings#invite`}>
+                  {canManage(workspace.role) ? '3. Bring your team in →' : '3. Meet your team →'}
+                </Link>
+              </div>
+            </section>
+          )}
+        <div className="project-controls" id="task-board">
           <div className="board-tabs">
             {projectBoards.map((b) => (
               <Link
@@ -129,6 +147,12 @@ export default async function Project({
                     Board name
                     <input name="name" required maxLength={80} />
                   </label>
+                  <label className="checkbox-label">
+                    <input type="checkbox" name="starterBoard" value="1" defaultChecked />
+                    <span>
+                      Use starter columns<small>To do, In progress and Done</small>
+                    </span>
+                  </label>
                 </ActionForm>
               </Dialog>
               {board && (
@@ -147,6 +171,10 @@ export default async function Project({
         </div>
         {board ? (
           <Kanban
+            key={`${board.id}:${query.task || ''}`}
+            focusedTaskId={
+              boardTasks.some((task) => task.id === query.task) ? query.task : undefined
+            }
             columns={boardColumns}
             tasks={boardTasks}
             members={members}
@@ -163,33 +191,39 @@ export default async function Project({
           <div className="section-heading">
             <h2>
               <FileText size={17} />
-              Documents <span>{projectDocuments.length}</span>
+              Recent documents <span>{projectDocuments.length}</span>
             </h2>
+            <Link className="back-link" href={`/w/${workspaceId}/p/${projectId}/documents`}>
+              View all documents →
+            </Link>
           </div>
           {projectDocuments.length ? (
             <div className="document-list">
-              {projectDocuments.map((document) => (
-                <Link
-                  key={document.id}
-                  aria-label={document.title}
-                  href={`/w/${workspaceId}/p/${projectId}/d/${document.id}`}
-                >
-                  <FileText size={19} />
-                  <span>{document.title}</span>
-                  <small className="pill">
-                    {(
-                      {
-                        richtext: 'Document',
-                        word: 'Word',
-                        sheet: 'Excel',
-                        slides: 'PowerPoint',
-                        pdf: 'PDF',
-                      } as Record<string, string>
-                    )[document.kind] || 'Document'}
-                  </small>
-                  <ArrowUpRight size={17} />
-                </Link>
-              ))}
+              {projectDocuments
+                .slice(-5)
+                .reverse()
+                .map((document) => (
+                  <Link
+                    key={document.id}
+                    aria-label={document.title}
+                    href={`/w/${workspaceId}/p/${projectId}/d/${document.id}`}
+                  >
+                    <FileText size={19} />
+                    <span>{document.title}</span>
+                    <small className="pill">
+                      {(
+                        {
+                          richtext: 'Document',
+                          word: 'Word',
+                          sheet: 'Excel',
+                          slides: 'PowerPoint',
+                          pdf: 'PDF',
+                        } as Record<string, string>
+                      )[document.kind] || 'Document'}
+                    </small>
+                    <ArrowUpRight size={17} />
+                  </Link>
+                ))}
             </div>
           ) : (
             <p className="document-empty">

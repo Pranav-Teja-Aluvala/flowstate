@@ -90,10 +90,14 @@ export default async function Settings({ params }: { params: Promise<{ workspace
         </section>
         {manageable && (
           <div className="settings-grid">
-            <section className="settings-card">
+            <section className="settings-card" id="invite">
               <h2>Invite someone in</h2>
               <p className="muted">
                 Create a link for a specific email address. Share it directly with your teammate.
+              </p>
+              <p className="role-help">
+                Editors create and edit work. Viewers read and download. Admins also manage members
+                and review code suggestions.
               </p>
               <ActionForm action={inviteMember} label="Create invitation">
                 <input type="hidden" name="workspaceId" value={workspaceId} />

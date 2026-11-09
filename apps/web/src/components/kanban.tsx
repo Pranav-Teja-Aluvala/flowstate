@@ -1,5 +1,5 @@
 'use client';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { GripVertical, Plus, ArrowUp, ArrowDown } from 'lucide-react';
 import { moveTask, saveTask, deleteTask } from '@/lib/work-actions';
@@ -21,17 +21,25 @@ export function Kanban({
   tasks,
   members,
   editable,
+  focusedTaskId,
 }: {
   columns: Column[];
   tasks: Task[];
   members: Member[];
   editable: boolean;
+  focusedTaskId?: string;
 }) {
   const [editing, setEditing] = useState<string | null>(null);
   const [adding, setAdding] = useState<string | null>(null);
   const [feedback, setFeedback] = useState('');
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+  useEffect(() => {
+    if (!focusedTaskId) return;
+    const element = document.getElementById(`task-${focusedTaskId}`);
+    element?.scrollIntoView({ block: 'center', inline: 'nearest' });
+    element?.focus({ preventScroll: true });
+  }, [focusedTaskId]);
   const move = (task: Task, columnId: string, index: number) =>
     startTransition(async () => {
       const state = await moveTask({ taskId: task.id, columnId, index, version: task.version });
@@ -120,6 +128,9 @@ export function Kanban({
               {items.map((task, index) => (
                 <article
                   className="task-card"
+                  id={`task-${task.id}`}
+                  data-focused={focusedTaskId === task.id ? 'true' : undefined}
+                  tabIndex={-1}
                   key={task.id}
                   draggable={editable && !pending}
                   onDragStart={(e) => {

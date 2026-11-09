@@ -41,6 +41,14 @@ export async function createBoard(_state: ActionState, form: FormData): Promise<
     const name = nameSchema.parse(value(form, 'name'));
     const board = await db.transaction(async (tx) => {
       const [created] = await tx.insert(boards).values({ projectId, name }).returning();
+      if (value(form, 'starterBoard') === '1')
+        await tx.insert(columns).values(
+          ['To do', 'In progress', 'Done'].map((title, sortKey) => ({
+            boardId: created.id,
+            title,
+            sortKey,
+          })),
+        );
       await tx.insert(activityEvents).values({
         workspaceId: project.workspaceId,
         actorId: user.id,

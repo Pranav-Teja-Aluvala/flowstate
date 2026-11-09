@@ -1,20 +1,25 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ArrowUpRight, Layers2 } from 'lucide-react';
+import { authReturnPath } from '@flowstate/contracts';
 import { currentUser } from '@/lib/auth';
 import { authenticate } from '@/lib/actions';
 import { ActionForm } from '@/components/forms';
 export default async function Login({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string }>;
+  searchParams: Promise<{ mode?: string; next?: string }>;
 }) {
-  if (await currentUser()) redirect('/app');
-  const register = (await searchParams).mode === 'register';
+  const query = await searchParams;
+  const next = authReturnPath(query.next);
+  if (await currentUser()) redirect(next);
+  const register = query.mode === 'register';
+  const joining = next.startsWith('/join/');
+  const switchURL = `/login?${new URLSearchParams({ ...(register ? {} : { mode: 'register' }), ...(next !== '/app' ? { next } : {}) })}`;
   return (
     <main className="auth-layout">
       <section className="auth-story">
-        <Link href="/login" className="brand">
+        <Link href="/" className="brand">
           <Layers2 size={25} />
           FLOWSTATE
           <span className="brand-dot" />
@@ -40,11 +45,14 @@ export default async function Login({
           <p className="eyebrow">YOUR NEXT CHAPTER</p>
           <h2>{register ? 'Make room for good work.' : 'Welcome back.'}</h2>
           <p className="muted">
-            {register
-              ? 'Create an account, then a space for your team.'
-              : 'Pick up where your team left off.'}
+            {joining
+              ? 'Sign in or create an account using the invited email. We’ll take you back to your invitation.'
+              : register
+                ? 'Create an account, then a space for your team.'
+                : 'Pick up where your team left off.'}
           </p>
           <ActionForm action={authenticate} label={register ? 'Create account' : 'Sign in'}>
+            <input type="hidden" name="next" value={next} />
             <input type="hidden" name="mode" value={register ? 'register' : 'login'} />
             {register && (
               <label>
@@ -84,7 +92,7 @@ export default async function Login({
           </ActionForm>
           <p className="auth-switch">
             {register ? 'Already have an account?' : 'New to FLOWSTATE?'}{' '}
-            <Link href={register ? '/login' : '/login?mode=register'}>
+            <Link href={switchURL}>
               {register ? 'Sign in' : 'Create an account'} <ArrowUpRight size={13} />
             </Link>
           </p>

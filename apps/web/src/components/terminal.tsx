@@ -138,13 +138,13 @@ export function SharedTerminal({
   }, [open, projectId, sessionId, editable, enabled]);
   if (!enabled)
     return (
-      <section className="terminal-panel">
-        <h2>Shared terminal</h2>
+      <details className="capability-note">
+        <summary>Shared terminal is unavailable in this workspace</summary>
         <p>
-          Code execution is disabled on this instance. The instance administrator can configure the
-          optional Docker runner.
+          You can still edit, review and download code. A workspace operator can enable the optional
+          execution service.
         </p>
-      </section>
+      </details>
     );
   return (
     <section className="terminal-panel">

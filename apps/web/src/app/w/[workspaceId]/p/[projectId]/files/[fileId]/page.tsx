@@ -1,3 +1,4 @@
+import { ProjectNavigation } from '@/components/project-navigation';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { and, desc, eq } from 'drizzle-orm';
@@ -22,6 +23,7 @@ export default async function FileStudio({
   if (!access || access.workspaceId !== workspaceId || access.file.projectId !== projectId)
     notFound();
   const spaces = await userWorkspaces(user.id);
+  const officeAvailable = Boolean(process.env.OFFICE_JWT_SECRET && process.env.OFFICE_PUBLIC_URL);
   const versions = await db
     .select({
       id: projectFileVersions.id,
@@ -47,10 +49,11 @@ export default async function FileStudio({
             <a className="button secondary" href={`/api/v1/files/${fileId}`}>
               Download latest saved file
             </a>
-            <FileExport fileId={fileId} name={access.file.name} />
+            {officeAvailable && <FileExport fileId={fileId} name={access.file.name} />}
           </div>
         </section>
-        {process.env.OFFICE_JWT_SECRET && process.env.OFFICE_PUBLIC_URL ? (
+        <ProjectNavigation workspaceId={workspaceId} projectId={projectId} active="files" />
+        {officeAvailable ? (
           <OfficeEditor key={access.file.version} fileId={fileId} />
         ) : (
           <section className="settings-card integration-unavailable">
@@ -64,15 +67,17 @@ export default async function FileStudio({
               To start a new Word document, spreadsheet, presentation, or PDF without additional
               setup, use New document in your project.
             </p>
-            <Link className="button primary" href={`/w/${workspaceId}/p/${projectId}`}>
+            <Link className="button primary" href={`/w/${workspaceId}/p/${projectId}/documents`}>
               Create a document in FLOWSTATE →
             </Link>
           </section>
         )}
-        <p className="muted small">
-          Exports use the latest saved version. Close every office editor and wait for save-back
-          before exporting.
-        </p>
+        {officeAvailable && (
+          <p className="muted small">
+            Exports use the latest saved version. Close every office editor and wait for save-back
+            before exporting.
+          </p>
+        )}
         {versions.length > 0 && (
           <section className="settings-card">
             <h2>Previous versions</h2>

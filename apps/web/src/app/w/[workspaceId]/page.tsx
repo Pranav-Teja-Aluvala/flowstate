@@ -13,10 +13,10 @@ import {
   columns,
   boards,
 } from '@flowstate/database';
-import { canWrite } from '@flowstate/contracts';
+import { canWrite, canManage } from '@flowstate/contracts';
 import { requireUser } from '@/lib/auth';
 import { userWorkspaces } from '@/lib/queries';
-import { saveProject } from '@/lib/actions';
+import { NewProject } from '@/components/new-project';
 import { ActionForm, Dialog } from '@/components/forms';
 import { Shell } from '@/components/shell';
 import { postTeamNote } from '@/lib/work-actions';
@@ -26,7 +26,7 @@ export default async function Workspace({ params }: { params: Promise<{ workspac
   const spaces = await userWorkspaces(user.id);
   const workspace = spaces.find((w) => w.id === workspaceId);
   if (!workspace) notFound();
-  const [items, members, notes, activity, summary] = await Promise.all([
+  const [items, members, notes, activity, summary, assignedTasks] = await Promise.all([
     db
       .select()
       .from(projects)
@@ -70,6 +70,22 @@ export default async function Workspace({ params }: { params: Promise<{ workspac
       .innerJoin(boards, eq(columns.boardId, boards.id))
       .innerJoin(projects, eq(boards.projectId, projects.id))
       .where(eq(projects.workspaceId, workspaceId)),
+    db
+      .select({
+        id: tasks.id,
+        title: tasks.title,
+        column: columns.title,
+        boardId: boards.id,
+        projectId: projects.id,
+        project: projects.name,
+      })
+      .from(tasks)
+      .innerJoin(columns, eq(tasks.columnId, columns.id))
+      .innerJoin(boards, eq(columns.boardId, boards.id))
+      .innerJoin(projects, eq(boards.projectId, projects.id))
+      .where(sql`${projects.workspaceId} = ${workspaceId} and ${tasks.assigneeId} = ${user.id}`)
+      .orderBy(desc(tasks.updatedAt))
+      .limit(5),
   ]);
   return (
     <Shell user={user} workspaces={spaces} active={workspaceId}>
@@ -93,31 +109,14 @@ export default async function Workspace({ params }: { params: Promise<{ workspac
             </h1>
             <p className="muted">Projects, shared documents, and the next steps for your team.</p>
           </div>
-          {canWrite(workspace.role) && (
-            <Dialog title="Start a new project" trigger="New project">
-              <ActionForm action={saveProject} label="Create project">
-                <input type="hidden" name="workspaceId" value={workspaceId} />
-                <label>
-                  Project name
-                  <input
-                    autoFocus
-                    name="name"
-                    required
-                    maxLength={80}
-                    placeholder="What are you working on?"
-                  />
-                </label>
-                <label>
-                  Description
-                  <textarea
-                    name="description"
-                    maxLength={1000}
-                    placeholder="A little context for your team…"
-                  />
-                </label>
-              </ActionForm>
-            </Dialog>
-          )}
+          <div className="document-actions">
+            {canManage(workspace.role) && (
+              <Link className="button secondary" href={`/w/${workspaceId}/settings#invite`}>
+                Invite teammates
+              </Link>
+            )}
+            {canWrite(workspace.role) && <NewProject workspaceId={workspaceId} />}
+          </div>
         </section>
         <div className="workspace-task-summary" aria-label="Workspace overview counts">
           <span>
@@ -169,11 +168,48 @@ export default async function Workspace({ params }: { params: Promise<{ workspac
               <section className="empty-state">
                 <FolderOpen size={30} strokeWidth={1} />
                 <h3>Your next idea belongs here.</h3>
-                <p>Create your first project to give the work a home.</p>
+                <p>
+                  {canWrite(workspace.role)
+                    ? 'Start with a board, then create documents or connect a repository as you need them.'
+                    : 'Your team’s projects will appear here. Ask an owner or editor to create the first one.'}
+                </p>
+                {canWrite(workspace.role) && (
+                  <NewProject workspaceId={workspaceId} trigger="Create your first project" />
+                )}
               </section>
             )}
           </section>
           <aside className="workspace-updates" aria-label="Team updates">
+            <section className="settings-card assigned-work">
+              <h2>
+                Assigned to you <span className="pill">{summary[0].assigned}</span>
+              </h2>
+              {assignedTasks.length ? (
+                <ul>
+                  {assignedTasks.map((task) => (
+                    <li key={task.id}>
+                      <Link
+                        href={`/w/${workspaceId}/p/${task.projectId}?board=${task.boardId}&task=${task.id}#task-${task.id}`}
+                      >
+                        <strong>{task.title}</strong>
+                        <small>
+                          {task.project} · {task.column}
+                        </small>
+                        <ArrowUpRight size={14} />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="muted">
+                  Nothing assigned to you yet. Assign a task from a project board and it will appear
+                  here.
+                </p>
+              )}
+              {summary[0].assigned > 5 && (
+                <p className="muted small">Showing your 5 most recently updated tasks.</p>
+              )}
+            </section>
             <section className="settings-card">
               <h2>Team notes</h2>
               {canWrite(workspace.role) && (

@@ -4,7 +4,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/app', '/w/', '/api/', '/join/', '/login'],
+      disallow: ['/app', '/w/', '/api/', '/join/', '/login', '/help'],
     },
     sitemap: `${new URL(process.env.APP_URL || 'http://localhost:3000').origin}/sitemap.xml`,
   };

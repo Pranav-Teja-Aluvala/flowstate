@@ -70,6 +70,7 @@ test('a public repository connects by URL without GitHub credentials and support
     await expect(a.getByRole('textbox', { name: 'Shared source code' })).toContainText(
       'export const version = 1;',
     );
+    await expect(a.getByRole('button', { name: 'index.ts', exact: true })).toBeVisible();
     await b.goto(a.url());
     const first = a.getByRole('textbox', { name: 'Shared source code' }),
       second = b.getByRole('textbox', { name: 'Shared source code' });

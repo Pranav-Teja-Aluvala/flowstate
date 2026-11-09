@@ -1,3 +1,4 @@
+import { ProjectNavigation } from '@/components/project-navigation';
 import Link from 'next/link';
 import { and, eq } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
@@ -41,9 +42,9 @@ export default async function DocumentPage({
         <FileText size={16} />
       </header>
       <main className="workspace-main document-main">
-        <Link className="back-link" href={`/w/${workspaceId}/p/${projectId}`}>
+        <Link className="back-link" href={`/w/${workspaceId}/p/${projectId}/documents`}>
           <ArrowLeft size={14} />
-          Back to {project.name}
+          All documents
         </Link>
         <section className="page-heading">
           <div>
@@ -86,6 +87,7 @@ export default async function DocumentPage({
             )}
           </div>
         </section>
+        <ProjectNavigation workspaceId={workspaceId} projectId={projectId} active="documents" />
         {document.kind === 'sheet' || document.kind === 'slides' ? (
           <StructuredStudio
             user={user}

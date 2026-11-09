@@ -9,6 +9,11 @@ const Notify = createContext<((message: string) => void) | null>(null);
 
 export function FeedbackProvider({ children }: { children: React.ReactNode }) {
   const [message, setMessage] = useState('');
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => setMessage(''), 6000);
+    return () => clearTimeout(timer);
+  }, [message]);
   return (
     <Notify.Provider value={setMessage}>
       {children}
@@ -46,9 +51,11 @@ export function ActionForm({
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const submitted = useRef<FormData | null>(null);
+  const [copied, setCopied] = useState(false);
   const [state, dispatch, pending] = useActionState(
     async (previous: ActionState, form: FormData) => {
       submitted.current = form;
+      setCopied(false);
       const result = await action(previous, form);
       if (result.success && !result.error && !result.invite && !result.link)
         complete?.(result.success);
@@ -97,18 +104,45 @@ export function ActionForm({
         </p>
       )}
       {state.invite && (
-        <label>
-          Invitation link
-          <input
-            readOnly
-            value={
-              typeof window === 'undefined'
-                ? state.invite
-                : `${window.location.origin}${state.invite}`
-            }
-            onFocus={(e) => e.target.select()}
-          />
-        </label>
+        <div className="invite-result">
+          <label>
+            Invitation link
+            <input
+              name="invitationURL"
+              readOnly
+              value={
+                typeof window === 'undefined'
+                  ? state.invite
+                  : `${window.location.origin}${state.invite}`
+              }
+              onFocus={(e) => e.target.select()}
+            />
+          </label>
+          <button
+            type="button"
+            className="button secondary"
+            onClick={async () => {
+              const input = formRef.current?.elements.namedItem(
+                'invitationURL',
+              ) as HTMLInputElement | null;
+              if (!input) return;
+              try {
+                await navigator.clipboard.writeText(input.value);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 4000);
+              } catch {
+                input.focus();
+                input.select();
+              }
+            }}
+          >
+            {copied ? 'Link copied' : 'Copy invitation link'}
+          </button>
+          <p className="muted small">
+            Send this link directly to the email address above. They can sign up and join from the
+            same link.
+          </p>
+        </div>
       )}
       {state.link && (
         <a href={state.link} target="_blank" rel="noreferrer" className="back-link">

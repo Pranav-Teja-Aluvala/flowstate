@@ -6,15 +6,16 @@ export function ShellNavigation({ workspaceId }: { workspaceId?: string }) {
   const path = usePathname();
   const settings = workspaceId ? `/w/${workspaceId}/settings` : '';
   const inSettings = path === settings;
+  const inProjects = !inSettings && path !== '/help';
   return (
     <nav aria-label="Workspace navigation">
       <Link
-        className={inSettings ? 'nav-link' : 'nav-link active'}
-        aria-current={!inSettings ? 'page' : undefined}
+        className={inProjects ? 'nav-link active' : 'nav-link'}
+        aria-current={inProjects ? 'page' : undefined}
         href={workspaceId ? `/w/${workspaceId}` : '/app'}
       >
         <FolderKanban size={18} />
-        Projects{!inSettings && <span className="nav-indicator" />}
+        Projects{inProjects && <span className="nav-indicator" />}
       </Link>
       {workspaceId && (
         <Link

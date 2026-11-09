@@ -52,10 +52,10 @@ export function Shell({
         <ShellNavigation workspaceId={active} />
         {active && <WorkspacePresence key={active} workspaceId={active} />}
         <div className="sidebar-bottom">
-          <div className="help-link">
+          <Link className="help-link" href={active ? `/help?workspace=${active}` : '/help'}>
             <CircleHelp size={16} />
-            Built for working together
-          </div>
+            Help & getting started
+          </Link>
           <div className="profile">
             <span className="avatar">{user.name.slice(0, 1).toUpperCase()}</span>
             <span>

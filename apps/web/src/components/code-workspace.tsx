@@ -38,12 +38,14 @@ export function FileBrowser({
   sessionId,
   baseUrl,
   parent,
+  currentPath,
 }: {
   entries: GitHubEntry[];
   projectId: string;
   sessionId: string;
   baseUrl: string;
   parent: string | null;
+  currentPath?: string;
 }) {
   const router = useRouter();
   const [error, setError] = useState('');
@@ -70,7 +72,10 @@ export function FileBrowser({
               try {
                 const result = await openCodeFile({ projectId, sessionId, path: entry.path });
                 if (result.error) setError(result.error);
-                else router.push(`${baseUrl}&file=${result.fileId}`);
+                else
+                  router.push(
+                    `${baseUrl}&file=${result.fileId}${currentPath ? `&path=${encodeURIComponent(currentPath)}` : ''}`,
+                  );
               } catch {
                 setError('Unable to open this file. Check your connection and try again.');
               } finally {

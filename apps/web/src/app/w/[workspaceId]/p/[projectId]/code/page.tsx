@@ -1,3 +1,4 @@
+import { ProjectNavigation } from '@/components/project-navigation';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { z } from 'zod';
@@ -163,6 +164,26 @@ export default async function ProjectCode({
             Project settings
           </Link>
         </section>
+        <ProjectNavigation workspaceId={workspaceId} projectId={projectId} active="code" />
+        <ol className="code-flow" aria-label="Code workflow">
+          {['Connect a repository', 'Start a shared session', 'Open, review and share'].map(
+            (label, index) => (
+              <li
+                key={label}
+                aria-current={(repo ? (session ? 2 : 1) : 0) === index ? 'step' : undefined}
+              >
+                <span>{index + 1}</span>
+                {label}
+              </li>
+            ),
+          )}
+        </ol>
+        {!repo && !canManage(workspace.role) && (
+          <p className="capability-note">
+            A workspace owner or admin can connect this project’s repository. You can join its
+            shared sessions once it is connected.
+          </p>
+        )}
         {query.github === 'error' && (
           <p className="feedback error" role="alert">
             GitHub authorization failed. Check the app configuration and try again.
@@ -202,9 +223,8 @@ export default async function ProjectCode({
             in FLOWSTATE until you download them.
           </p>
         ) : !account ? (
-          <section className="settings-card">
-            <GitFork size={27} />
-            <h2>Need a private repository or GitHub publishing?</h2>
+          <details className="settings-card integration-options" open={Boolean(repo)}>
+            <summary>Private GitHub access and publishing</summary>
             <p className="muted">
               GitHub access stays personal. You need repository permission as well as FLOWSTATE
               project membership.
@@ -215,11 +235,11 @@ export default async function ProjectCode({
               </a>
             ) : (
               <p className="setup-notice">
-                A workspace operator needs to configure the GitHub App first. Setup instructions are
-                included in <code>docs/github-setup.md</code>.
+                Private repositories and publishing are not enabled in this workspace yet. Ask the
+                workspace operator to connect GitHub. Public repository copies are available above.
               </p>
             )}
-          </section>
+          </details>
         ) : (
           <div className="github-identity">
             <GitFork size={16} />
@@ -312,35 +332,38 @@ export default async function ProjectCode({
                 Open on GitHub ↗
               </a>
             </section>
-            <div className="repository-activity">
-              <section>
-                <h2>
-                  <GitBranch size={16} />
-                  Recent commits
-                </h2>
-                {commits.map((c) => (
-                  <a key={c.sha} target="_blank" rel="noreferrer" href={c.html_url}>
-                    <code>{c.sha.slice(0, 7)}</code>
-                    {c.commit.message.split('\n')[0]}
-                  </a>
-                ))}
-              </section>
-              <section>
-                <h2>
-                  <GitPullRequest size={16} />
-                  Open pull requests
-                </h2>
-                {prs.length ? (
-                  prs.map((pr) => (
-                    <a key={pr.number} href={pr.html_url} target="_blank" rel="noreferrer">
-                      #{pr.number} {pr.title}
+            <details className="repository-details">
+              <summary>Repository activity · commits and pull requests</summary>
+              <div className="repository-activity">
+                <section>
+                  <h2>
+                    <GitBranch size={16} />
+                    Recent commits
+                  </h2>
+                  {commits.map((c) => (
+                    <a key={c.sha} target="_blank" rel="noreferrer" href={c.html_url}>
+                      <code>{c.sha.slice(0, 7)}</code>
+                      {c.commit.message.split('\n')[0]}
                     </a>
-                  ))
-                ) : (
-                  <p className="muted">No open pull requests.</p>
-                )}
-              </section>
-            </div>
+                  ))}
+                </section>
+                <section>
+                  <h2>
+                    <GitPullRequest size={16} />
+                    Open pull requests
+                  </h2>
+                  {prs.length ? (
+                    prs.map((pr) => (
+                      <a key={pr.number} href={pr.html_url} target="_blank" rel="noreferrer">
+                        #{pr.number} {pr.title}
+                      </a>
+                    ))
+                  ) : (
+                    <p className="muted">No open pull requests.</p>
+                  )}
+                </section>
+              </div>
+            </details>
             <div className="project-controls">
               <nav className="board-tabs">
                 {sessions.map((s) => (
@@ -381,6 +404,7 @@ export default async function ProjectCode({
                     projectId={projectId}
                     sessionId={session.id}
                     baseUrl={`${codeBase}?session=${session.id}`}
+                    currentPath={query.path}
                     parent={query.path ? query.path.split('/').slice(0, -1).join('/') : null}
                   />
                   {file ? (
@@ -395,18 +419,29 @@ export default async function ProjectCode({
                     <section className="empty-state">
                       <h3>Pick a file. Bring your team.</h3>
                       <p>
-                        Open a text file to edit together. Changes stay in FLOWSTATE until you
-                        publish a pull request.
+                        Open a text file to edit together. Use a suggestion when you want an owner
+                        or admin to review a change.{' '}
+                        {repo.accessMode === 'public'
+                          ? 'Download saved files to take your changes with you.'
+                          : 'Publish reviewed work through a new branch and pull request.'}
                       </p>
                     </section>
                   )}
                 </div>
-                <SharedTerminal
-                  enabled={process.env.RUNNER_ENABLED === 'true'}
-                  projectId={projectId}
-                  sessionId={session.id}
-                  editable={canWrite(workspace.role) && push}
-                />
+                <div className="code-section-links">
+                  <a href="#code-review">Review & discussion ↓</a>
+                  {process.env.RUNNER_ENABLED === 'true' && (
+                    <a href="#code-terminal">Shared terminal ↓</a>
+                  )}
+                </div>
+                <div id="code-terminal">
+                  <SharedTerminal
+                    enabled={process.env.RUNNER_ENABLED === 'true'}
+                    projectId={projectId}
+                    sessionId={session.id}
+                    editable={canWrite(workspace.role) && push}
+                  />
+                </div>
                 <CodeReviewPanel sessionId={session.id} fileId={file?.id} role={workspace.role} />
                 {canWrite(workspace.role) && push && repo.accessMode !== 'public' && (
                   <section className="settings-card publish-card">

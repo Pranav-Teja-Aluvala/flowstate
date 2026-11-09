@@ -13,10 +13,18 @@ import {
   workspaces,
   memberships,
   projects,
+  boards,
+  columns,
   invites,
   activityEvents,
 } from '@flowstate/database';
-import { nameSchema, emailSchema, passwordSchema, projectSchema } from '@flowstate/contracts';
+import {
+  nameSchema,
+  emailSchema,
+  passwordSchema,
+  projectSchema,
+  authReturnPath,
+} from '@flowstate/contracts';
 import { createSession, requireUser, requireMembership, tokenHash } from './auth';
 
 export type ActionState = {
@@ -65,7 +73,7 @@ export async function authenticate(_state: ActionState, form: FormData): Promise
   } catch (error) {
     return { error: message(error) };
   }
-  redirect('/app');
+  redirect(authReturnPath(text(form, 'next')));
 }
 export async function logout() {
   const jar = await cookies();
@@ -142,6 +150,7 @@ export async function deleteWorkspace(_state: ActionState, form: FormData): Prom
   redirect('/app');
 }
 export async function saveProject(_state: ActionState, form: FormData): Promise<ActionState> {
+  let destination: string | undefined;
   try {
     const workspaceId = id(form, 'workspaceId');
     const { user } = await requireMembership(workspaceId, 'write');
@@ -154,12 +163,41 @@ export async function saveProject(_state: ActionState, form: FormData): Promise<
         .update(projects)
         .set(data)
         .where(and(eq(projects.id, id(form, 'projectId')), eq(projects.workspaceId, workspaceId)));
-    else await db.insert(projects).values({ ...data, workspaceId, createdBy: user.id });
+    else {
+      const project = await db.transaction(async (tx) => {
+        const [created] = await tx
+          .insert(projects)
+          .values({ ...data, workspaceId, createdBy: user.id })
+          .returning();
+        if (text(form, 'starterBoard') === '1') {
+          const [board] = await tx
+            .insert(boards)
+            .values({ projectId: created.id, name: 'Project board' })
+            .returning();
+          await tx.insert(columns).values(
+            ['To do', 'In progress', 'Done'].map((title, sortKey) => ({
+              boardId: board.id,
+              title,
+              sortKey,
+            })),
+          );
+        }
+        await tx.insert(activityEvents).values({
+          workspaceId,
+          actorId: user.id,
+          action: 'project.created',
+          objectType: 'project',
+          objectId: created.id,
+        });
+        return created;
+      });
+      if (text(form, 'openProject') === '1') destination = `/w/${workspaceId}/p/${project.id}`;
+    }
   } catch (error) {
     return { error: message(error) };
   }
   revalidatePath('/');
-  return { success: 'Project saved.' };
+  return { success: 'Project saved.', ...(destination ? { redirectTo: destination } : {}) };
 }
 export async function deleteProject(_state: ActionState, form: FormData): Promise<ActionState> {
   let workspaceId: string;

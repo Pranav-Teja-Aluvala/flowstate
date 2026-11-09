@@ -1,3 +1,4 @@
+import { ProjectNavigation } from '@/components/project-navigation';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { and, eq } from 'drizzle-orm';
@@ -49,6 +50,7 @@ export default async function ProjectSettings({
             <p className="muted">Manage the details behind your team’s work.</p>
           </div>
         </section>
+        <ProjectNavigation workspaceId={workspaceId} projectId={projectId} active="settings" />
         <section className="settings-card">
           <h2>General</h2>
           {canWrite(workspace.role) ? (

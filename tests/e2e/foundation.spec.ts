@@ -39,9 +39,9 @@ test('accounts, persisted projects, invitations, workspace isolation, and viewer
   await owner.getByRole('button', { name: 'Create project', exact: true }).click();
   await expect(owner.getByRole('status')).toHaveText('Project saved.');
   await expect(owner.getByRole('dialog')).toHaveCount(0);
+  await expect(owner).toHaveURL(/\/p\/[a-f0-9-]+$/);
   await owner.reload();
-  await expect(owner.getByRole('heading', { name: 'Brand refresh' })).toBeVisible();
-  await owner.getByRole('link', { name: /Brand refresh/ }).click();
+  await expect(owner.getByRole('heading', { name: 'Brand refresh.' })).toBeVisible();
   await expect(owner).toHaveURL(/\/p\/[a-f0-9-]+$/);
   const projectUrl = owner.url();
   await owner.getByRole('link', { name: 'Project settings' }).click();

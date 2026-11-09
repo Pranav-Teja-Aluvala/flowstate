@@ -1,5 +1,25 @@
 # Verification record
 
+## Customer-flow update — 09 November 2026
+
+49 unit/integration tests pass, including safe authentication return destinations.
+The new browser journey checks starter columns, assigned-task links, document
+search/filter/sort, mobile overflow, consistent navigation, invitation copying
+and signup-to-join continuity. It checks that a registered person cannot read the
+library before joining, and can edit afterward. The library and in-app help pass
+axe WCAG A/AA checks. Unavailable Office conversion is not offered as an active action.
+
+All eight core browser flows, both GitHub fixture flows and the Office contract
+flow pass locally. Type checks, lint, formatting, the production build and the
+production dependency audit pass. An isolated public-page audit measured 98
+performance and 100 accessibility, best practices and SEO on all three public
+pages, with zero axe violations. Performance varied between local runs.
+
+The preceding light-studio release passed all three CI jobs on
+[`6f4f2ee`](https://github.com/Pranav-Teja-Aluvala/flowstate/actions/runs/42648009683),
+including the real Docker runner and Office engine. That is historical evidence;
+the customer-flow commit has its own CI run.
+
 ## Light studio and native document update — 09 November 2026
 
 A live localhost check connected the real public `octocat/Hello-World` repository,

@@ -20,15 +20,15 @@ test('creation dialogs close on success, stay on validation errors, and deletion
   await page.getByRole('button', { name: 'Create project', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(
-    page.getByRole('heading', { name: 'Disposable project', exact: true }),
+    page.getByRole('heading', { name: 'Disposable project.', exact: true }),
   ).toBeVisible();
-  await page.getByRole('link', { name: /Disposable project/ }).click();
   await expect(page).toHaveURL(/\/p\/[a-f0-9-]+$/);
   const projectUrl = page.url();
   await expect(page.getByRole('button', { name: 'Delete project', exact: true })).toHaveCount(0);
   await expect(page.getByText('Danger zone', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'New board' }).click();
   await page.getByLabel('Board name').fill('Planning');
+  await page.getByLabel('Use starter columns').uncheck();
   await page.getByRole('button', { name: 'Create board', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Planning', exact: true })).toBeVisible();
@@ -59,7 +59,7 @@ test('creation dialogs close on success, stay on validation errors, and deletion
   await page.getByLabel('Project name confirmation').fill('Disposable project');
   await page.getByRole('button', { name: 'Permanently delete project', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Your projects.' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Disposable project', exact: true })).toHaveCount(
+  await expect(page.getByRole('heading', { name: 'Disposable project.', exact: true })).toHaveCount(
     0,
   );
 });

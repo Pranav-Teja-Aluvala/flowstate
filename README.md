@@ -3,11 +3,17 @@
 **A little more together.**
 
 This update brings a light paper-and-cobalt interface, a real landing page at `/`,
-and document creation that works without setting up an Office server.
+document creation without an Office server, and a clearer path from first project
+to team collaboration. See the [customer flow](docs/product-flow.md).
 
 ![FLOWSTATE version 2, running locally](docs/screenshots/workspace-desktop.png)
 
 ## What changed
+
+Projects now open with optional starter columns. Invitation signup returns to the
+team invitation. Assigned tasks link to the right board, Documents has search and
+type filters, and project navigation stays consistent across every work area.
+In-app help explains how to finish and share the work.
 
 | Update                | What you can do                                                                                                                                                                                |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -21,7 +27,9 @@ and document creation that works without setting up an Office server.
 
 ![Project board](docs/screenshots/kanban-desktop.png)
 
-![Live document studio](docs/screenshots/editor-desktop.png)
+![Searchable document library](docs/screenshots/documents-desktop.png)
+
+[Live document editor](docs/screenshots/editor-desktop.png) · [Document library on mobile](docs/screenshots/documents-mobile.png)
 
 <details>
 <summary>Mobile studio</summary>
@@ -64,7 +72,7 @@ The release uses TypeScript, ESLint, Vitest, Playwright, PostgreSQL-backed integ
 tests, real Docker runner tests and a real ONLYOFFICE CI job. See the
 [execution evidence and limits](docs/verification.md) for exact results.
 
-The light landing, Privacy and Terms pages measured **99 performance, 100 SEO,
+The light landing, Privacy and Terms pages measured **98 performance, 100 SEO,
 100 accessibility and 100 best practices** in a local production audit. Axe
 reported zero WCAG A/AA violations on those pages. See the
 [verification record](docs/verification.md). These are measured results, not a

@@ -72,7 +72,7 @@ export function CollaborativeEditor({
       },
       onSynced: ({ state }) => {
         if (state) {
-          setSaved('Synced');
+          setSaved(provider.hasUnsyncedChanges ? 'Saving…' : 'Up to date');
           setSession({ document, provider });
         }
       },
@@ -80,7 +80,11 @@ export function CollaborativeEditor({
         try {
           const message = JSON.parse(payload);
           setSaved(
-            message.type === 'saved' ? 'Saved to database' : 'Save failed — keep this page open',
+            message.type === 'saved'
+              ? provider.hasUnsyncedChanges
+                ? 'Saving…'
+                : 'Saved to database'
+              : 'Save failed — keep this page open',
           );
         } catch {
           /* Ignore unknown server messages. */
@@ -136,7 +140,7 @@ export function CollaborativeEditor({
       )}
       <footer className="editor-footer">
         <span>{editable ? 'A little space for your ideas.' : 'You have view-only access.'}</span>
-        <span>Changes save through collaboration.</span>
+        <span>Edits save automatically. Wait for Saved before exporting.</span>
       </footer>
     </section>
   );
