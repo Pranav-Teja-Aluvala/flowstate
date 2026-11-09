@@ -1384,24 +1384,11 @@ dialog {
   transform: translateY(0);
 }
 @media (prefers-reduced-motion: no-preference) {
-  .page-heading {
-    animation: studio-enter 220ms ease-out both;
-  }
   .project-arrow {
     transition: transform 160ms;
   }
   .project-card:hover .project-arrow {
     transform: translate(2px, -2px);
-  }
-}
-@keyframes studio-enter {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 @media (max-width: 1150px) {
