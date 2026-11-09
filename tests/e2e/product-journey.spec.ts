@@ -104,9 +104,9 @@ test('customer journey: starter project, assigned task, document library, invita
     await expect(
       page.getByRole('link', { name: 'Help & getting started', exact: true }),
     ).toBeVisible();
-    expect(
-      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
-    ).toBe(true);
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBeLessThanOrEqual(320);
     await page.setViewportSize({ width: 390, height: 844 });
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),

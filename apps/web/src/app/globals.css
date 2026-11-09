@@ -3835,6 +3835,15 @@ dialog::backdrop {
 }
 
 @media (max-width: 760px) {
+  .sidebar {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .sidebar .workspace-switch {
+    min-width: 0;
+    max-width: 210px;
+    width: 100%;
+    justify-self: end;
+  }
   .sidebar > .workspace-presence {
     display: none;
   }
@@ -3882,6 +3891,28 @@ dialog::backdrop {
   }
 }
 @media (max-width: 380px) {
+  .sidebar {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 8px;
+  }
+  .sidebar > .brand {
+    min-width: 0;
+    padding: 0;
+    font-size: 13px;
+    gap: 5px;
+  }
+  .sidebar > .brand > svg {
+    width: 20px;
+    flex-shrink: 0;
+  }
+  .sidebar > .brand > .brand-dot {
+    display: none;
+  }
+  .sidebar .workspace-switch {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
   .sidebar .nav-link {
     font-size: 10px;
     padding: 8px 6px;
